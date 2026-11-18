@@ -29,28 +29,29 @@
 </div>
 
 <!-- Reiter (Tabs) -->
-<ul class="nav nav-pills gap-2 mb-4">
+<ul class="nav nav-tabs ds-tabs">
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'persons' %}active{% endif %}" href="?tab=persons">
+        <a class="nav-link {% if active_tab == 'persons' %}active{% endif %}" href="?tab=persons">
             <i class="bi bi-people me-1"></i> 1. Personen & Rollen ({{ kpi_persons_total }})
         </a>
     </li>
     {% if mod_map.addresses.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'addresses' %}active{% endif %}" href="?tab=addresses">
+        <a class="nav-link {% if active_tab == 'addresses' %}active{% endif %}" href="?tab=addresses">
             <i class="bi bi-geo-alt me-1"></i> 2. Adressen ({{ kpi_addresses_total }})
         </a>
     </li>
     {% endif %}
     {% if mod_map.documents.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'documents' %}active{% endif %}" href="?tab=documents">
+        <a class="nav-link {% if active_tab == 'documents' %}active{% endif %}" href="?tab=documents">
             <i class="bi bi-folder2-open me-1"></i> 3. Dokumente zum Thema ({{ kpi_docs_total }})
         </a>
     </li>
     {% endif %}
 </ul>
 
+<div class="ds-tab-panel">
 {% if active_tab == 'persons' %}
 <div class="bento-kpi-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Personen gesamt" value=kpi_persons_total unit="Pers." icon="bi-people" size="sm" state=1 %}
@@ -263,6 +264,7 @@
     </div>
 </div>
 {% endif %}
+</div>
 
 {% if can_write %}
 <!-- Create Person Modal -->

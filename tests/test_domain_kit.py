@@ -189,6 +189,8 @@ class DomainKitTests(TestCase):
 
         settings_html = self.client.get("/domain/settings/?tab=modules").content.decode("utf-8")
         self.assertIn("Gruppe: Buchhaltung", settings_html)
+        self.assertIn("ds-tabs", settings_html)
+        self.assertIn("ds-tab-panel", settings_html)
 
         self.client.post(
             "/domain/settings/",

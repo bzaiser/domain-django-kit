@@ -25,36 +25,37 @@
     {% endif %}
 </div>
 
-<ul class="nav nav-pills gap-2 mb-4">
+<ul class="nav nav-tabs ds-tabs">
     {% if is_admin %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'modules' %}active{% endif %}" href="?tab=modules">
+        <a class="nav-link {% if active_tab == 'modules' %}active{% endif %}" href="?tab=modules">
             <i class="bi bi-toggles me-1"></i> 1. Modul- & Gruppen-Schaltzentrale
         </a>
     </li>
     {% endif %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'categories' %}active{% endif %}" href="?tab=categories">
+        <a class="nav-link {% if active_tab == 'categories' %}active{% endif %}" href="?tab=categories">
             <i class="bi bi-tags me-1"></i> 2. Kategorien (nach Zweck)
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'units' %}active{% endif %}" href="?tab=units">
+        <a class="nav-link {% if active_tab == 'units' %}active{% endif %}" href="?tab=units">
             <i class="bi bi-rulers me-1"></i> 3. Maßeinheiten
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'statuses' %}active{% endif %}" href="?tab=statuses">
+        <a class="nav-link {% if active_tab == 'statuses' %}active{% endif %}" href="?tab=statuses">
             <i class="bi bi-list-ol me-1"></i> 4. Status (mit Position & Farbe)
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'roles' %}active{% endif %}" href="?tab=roles">
+        <a class="nav-link {% if active_tab == 'roles' %}active{% endif %}" href="?tab=roles">
             <i class="bi bi-person-badge me-1"></i> 5. Rollen
         </a>
     </li>
 </ul>
 
+<div class="ds-tab-panel">
 {% if active_tab == 'modules' and is_admin %}
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -424,4 +425,5 @@ document.addEventListener('click', function (e) {
     </div>
 </div>
 {% endif %}
+</div>
 {% endblock %}

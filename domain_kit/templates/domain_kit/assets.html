@@ -24,42 +24,43 @@
 </div>
 
 <!-- Reiter (Tabs) -->
-<ul class="nav nav-pills gap-2 mb-4">
+<ul class="nav nav-tabs ds-tabs">
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'overview' %}active{% endif %}" href="?tab=overview">
+        <a class="nav-link {% if active_tab == 'overview' %}active{% endif %}" href="?tab=overview">
             <i class="bi bi-grid-1x2 me-1"></i> 1. Thema Assets ({{ all_assets.count }})
         </a>
     </li>
     {% if mod_map.documents.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'documents' %}active{% endif %}" href="?tab=documents">
+        <a class="nav-link {% if active_tab == 'documents' %}active{% endif %}" href="?tab=documents">
             <i class="bi bi-folder2-open me-1"></i> 2. Dokumente zum Thema ({{ asset_docs.count }})
         </a>
     </li>
     {% endif %}
     {% if mod_map.contracts.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'contract' %}active{% endif %}" href="?tab=contract">
+        <a class="nav-link {% if active_tab == 'contract' %}active{% endif %}" href="?tab=contract">
             <i class="bi bi-file-earmark-text me-1"></i> 3. Verträge ({{ contracts.count }})
         </a>
     </li>
     {% endif %}
     {% if mod_map.inventory.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'inventory' %}active{% endif %}" href="?tab=inventory">
+        <a class="nav-link {% if active_tab == 'inventory' %}active{% endif %}" href="?tab=inventory">
             <i class="bi bi-box-seam me-1"></i> 4. Inventar ({{ inventory.count }})
         </a>
     </li>
     {% endif %}
     {% if mod_map.accounts.can_read %}
     <li class="nav-item">
-        <a class="nav-link rounded-pill {% if active_tab == 'account' %}active{% endif %}" href="?tab=account">
+        <a class="nav-link {% if active_tab == 'account' %}active{% endif %}" href="?tab=account">
             <i class="bi bi-bank me-1"></i> 5. Konten ({{ accounts.count }})
         </a>
     </li>
     {% endif %}
 </ul>
 
+<div class="ds-tab-panel">
 <!-- Kurzer Einleitungs-Text zum aktiven Reiter -->
 <div class="alert alert-secondary py-2 small mb-3">
     {% if active_tab == 'overview' %}
@@ -261,6 +262,7 @@
     </div>
 </div>
 {% endif %}
+</div>
 
 {% if can_write %}
 <!-- Create Asset Modal -->

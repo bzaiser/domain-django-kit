@@ -16,15 +16,16 @@
     {% endif %}
 </div>
 
-<ul class="nav nav-pills gap-2 mb-4">
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'all' %}active{% endif %}" href="?topic=all">Alle</a></li>
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'person' %}active{% endif %}" href="?topic=person">Personen</a></li>
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'contract' %}active{% endif %}" href="?topic=contract">Verträge</a></li>
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'inventory' %}active{% endif %}" href="?topic=inventory">Inventar</a></li>
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'account' %}active{% endif %}" href="?topic=account">Konten</a></li>
-    <li class="nav-item"><a class="nav-link rounded-pill {% if topic_filter == 'general' %}active{% endif %}" href="?topic=general">Allgemein</a></li>
+<ul class="nav nav-tabs ds-tabs">
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'all' %}active{% endif %}" href="?topic=all">Alle</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'person' %}active{% endif %}" href="?topic=person">Personen</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'contract' %}active{% endif %}" href="?topic=contract">Verträge</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'inventory' %}active{% endif %}" href="?topic=inventory">Inventar</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'account' %}active{% endif %}" href="?topic=account">Konten</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'general' %}active{% endif %}" href="?topic=general">Allgemein</a></li>
 </ul>
 
+<div class="ds-tab-panel">
 <div class="bento-kpi-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Dokumente" value=documents.count unit="Dok." icon="bi-folder2-open" size="sm" state=1 %}
     {% include "design_studio/components/kpi_card.html" with title="Summe / Wert" value=total_amount unit="€" icon="bi-cash-stack" size="sm" state=2 %}
@@ -67,6 +68,7 @@
             </tbody>
         </table>
     </div>
+</div>
 </div>
 
 {% if can_write %}
