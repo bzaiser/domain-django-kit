@@ -10,13 +10,18 @@
         <div class="text-muted small">Module per Häkchen aktivieren, Gruppenrechte (Gast / Mitarbeiter / HR) steuern und Stammdaten pflegen</div>
     </div>
     {% if is_admin %}
-    <form method="post" class="d-inline">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="seed_defaults">
-        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-            <i class="bi bi-magic me-1"></i> Standard-Stammdaten & Gruppen laden
-        </button>
-    </form>
+    <div class="d-flex gap-2">
+        <a href="/admin/" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-shield-lock me-1"></i> Django Admin
+        </a>
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="seed_defaults">
+            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-magic me-1"></i> Standard-Stammdaten & Gruppen laden
+            </button>
+        </form>
+    </div>
     {% endif %}
 </div>
 
