@@ -87,6 +87,12 @@ class Category(models.Model):
     def for_purpose(cls, *purposes: str):
         return cls.objects.filter(is_active=True, purpose__in=purposes).order_by("position", "name")
 
+    @property
+    def badge_style(self) -> str:
+        if self.custom_color:
+            return f"background: {self.custom_color};"
+        return f"background: var(--theme-state-{self.color_state}, var(--app-primary));"
+
     def __str__(self):
         return f"{self.name} ({self.purpose})"
 
@@ -119,6 +125,7 @@ class Status(models.Model):
     name = models.CharField(max_length=60)
     scope = models.CharField(max_length=32, default="global", db_index=True)
     color_state = models.PositiveSmallIntegerField(default=1)
+    custom_color = models.CharField(max_length=16, blank=True, default="")
     icon = models.CharField(max_length=64, blank=True, default="bi-circle-fill")
     position = models.PositiveIntegerField(default=10, db_index=True)
     is_final = models.BooleanField(default=False)
@@ -131,6 +138,12 @@ class Status(models.Model):
         check = list(scopes) + ["global"]
         return cls.objects.filter(scope__in=check).order_by("position", "id")
 
+    @property
+    def badge_style(self) -> str:
+        if self.custom_color:
+            return f"background: {self.custom_color};"
+        return f"background: var(--theme-state-{self.color_state}, var(--app-primary));"
+
     def __str__(self):
         return f"{self.position}: {self.name}"
 
@@ -139,11 +152,18 @@ class Role(models.Model):
     name = models.CharField(max_length=80, unique=True)
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="roles")
     color_state = models.PositiveSmallIntegerField(default=1)
+    custom_color = models.CharField(max_length=16, blank=True, default="")
     position = models.PositiveIntegerField(default=10, db_index=True)
     description = models.CharField(max_length=200, blank=True, default="")
 
     class Meta:
         ordering = ["position", "name"]
+
+    @property
+    def badge_style(self) -> str:
+        if self.custom_color:
+            return f"background: {self.custom_color};"
+        return f"background: var(--theme-state-{self.color_state}, var(--app-primary));"
 
     def __str__(self):
         return self.name

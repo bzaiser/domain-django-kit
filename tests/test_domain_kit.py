@@ -169,6 +169,41 @@ class DomainKitTests(TestCase):
         self.assertEqual(AssetItem.objects.filter(asset_type="inventory").count(), 0)
         self.assertEqual(AssetItem.objects.filter(asset_type="contract").count(), 1)
 
+    def test_initial_django_groups_custom_group_and_color_picker(self):
+        from domain_kit.models import Role
+
+        for gname in ("Gast", "Mitarbeiter", "Personalverantwortlicher"):
+            self.assertTrue(Group.objects.filter(name=gname).exists())
+
+        self.client.force_login(self.admin)
+        self.client.post("/domain/settings/", {"action": "create_group", "group_name": "Buchhaltung"})
+        self.assertTrue(Group.objects.filter(name="Buchhaltung").exists())
+
+        settings_html = self.client.get("/domain/settings/?tab=modules").content.decode("utf-8")
+        self.assertIn("Gruppe: Buchhaltung", settings_html)
+
+        self.client.post(
+            "/domain/settings/",
+            {
+                "action": "create_category",
+                "name": "Sonderkategorie",
+                "purpose": "general",
+                "color_state": "3",
+                "use_custom_color": "on",
+                "custom_color": "#FF5500",
+            },
+        )
+        cat = Category.objects.get(name="Sonderkategorie")
+        self.assertEqual(cat.custom_color, "#FF5500")
+        self.assertEqual(cat.badge_style, "background: #FF5500;")
+
+        self.client.post(
+            "/domain/settings/",
+            {"action": "create_role", "name": "Projektleiter", "color_state": "8"},
+        )
+        role = Role.objects.get(name="Projektleiter")
+        self.assertEqual(role.badge_style, "background: var(--theme-state-8, var(--app-primary));")
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

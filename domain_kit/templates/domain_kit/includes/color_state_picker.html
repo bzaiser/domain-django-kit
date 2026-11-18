@@ -1,0 +1,24 @@
+<div class="d-flex flex-wrap align-items-center gap-1">
+    <select name="color_state" class="form-select form-select-sm" style="min-width: 150px; flex: 1;">
+        {% if theme_palette.states %}
+            {% for st in theme_palette.states %}
+            <option value="{{ st.index }}" style="color: {{ st.hex }}; font-weight: 600;">{{ st.name }} ({{ st.hex }})</option>
+            {% endfor %}
+        {% else %}
+            <option value="1">1. OK / Stabil</option>
+            <option value="2">2. Positiv / Info</option>
+            <option value="3">3. Mittel / Achtung</option>
+            <option value="4">4. Warnung</option>
+            <option value="5">5. Schlecht / Fehler</option>
+            <option value="6">6. Gefahr / Kritisch</option>
+            <option value="7">7. Neutral / Inaktiv</option>
+            <option value="8">8. Fokus / Highlight</option>
+        {% endif %}
+    </select>
+    <div class="input-group input-group-sm" style="width: auto;" title="Optional: Eigene Farbe statt Design-Studio-Farbe verwenden">
+        <span class="input-group-text">
+            <input type="checkbox" name="use_custom_color" class="form-check-input mt-0">
+        </span>
+        <input type="color" name="custom_color" class="form-control form-control-color" value="#0d6efd" title="Eigene Farbe wählen">
+    </div>
+</div>

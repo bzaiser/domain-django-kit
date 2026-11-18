@@ -451,6 +451,13 @@ def settings_page_view(request):
             messages.warning(request, f"Modul '{mod_key}' bereinigt ({deleted} Datensätze gelöscht).")
             return redirect(f"{request.path}?tab=modules")
 
+        if action == "create_group" and is_admin:
+            gname = (request.POST.get("group_name") or "").strip()[:150]
+            if gname:
+                Group.objects.get_or_create(name=gname)
+                messages.success(request, f"Django-Gruppe '{gname}' angelegt.")
+            return redirect(f"{request.path}?tab=modules")
+
         if action in ("create_category", "update_category"):
             cat = get_object_or_404(Category, pk=request.POST.get("pk")) if action == "update_category" else Category()
             cat.name = (request.POST.get("name") or "Kategorie").strip()[:100]
@@ -458,6 +465,7 @@ def settings_page_view(request):
             cat.code = (request.POST.get("code") or "").strip()[:40]
             cat.value = (request.POST.get("value") or "").strip()[:80]
             cat.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            cat.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
             cat.position = int(request.POST.get("position") or 10)
             cat.save()
             messages.success(request, "Kategorie gespeichert.")
@@ -487,6 +495,7 @@ def settings_page_view(request):
             st.name = (request.POST.get("name") or "Status").strip()[:60]
             st.scope = (request.POST.get("scope") or "global").strip()[:32]
             st.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            st.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
             st.position = int(request.POST.get("position") or 10)
             st.is_final = bool(request.POST.get("is_final"))
             st.save()
@@ -502,6 +511,7 @@ def settings_page_view(request):
             rl.name = (request.POST.get("name") or "Rolle").strip()[:80]
             rl.category = _fk_or_none(Category, request.POST.get("category_id"))
             rl.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            rl.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
             rl.position = int(request.POST.get("position") or 10)
             rl.description = (request.POST.get("description") or "").strip()[:200]
             rl.save()

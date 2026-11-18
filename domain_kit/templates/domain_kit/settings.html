@@ -57,7 +57,16 @@
 
 {% if active_tab == 'modules' and is_admin %}
 <div class="card shadow-sm mb-4">
-    <div class="card-header"><i class="bi bi-shield-lock me-1"></i> Modul-Aktivierung & Gruppen-Berechtigungs-Matrix</div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-shield-lock me-1"></i> Modul-Aktivierung & Django-Gruppen-Matrix</span>
+        <form method="post" class="d-flex gap-1 align-items-center">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_group">
+            <input type="text" name="group_name" class="form-control form-control-sm" placeholder="Neue Django-Gruppe..." required style="width: 170px;">
+            <button type="submit" class="btn btn-sm btn-light rounded-pill px-2">+ Gruppe</button>
+            <a href="/admin/auth/group/" class="btn btn-sm btn-outline-light rounded-pill px-2">Admin-Gruppen</a>
+        </form>
+    </div>
     <div class="card-body">
         <form method="post">
             {% csrf_token %}
@@ -143,8 +152,8 @@
                 </select>
             </div>
             <div class="col-md-2"><label class="form-label small">Code / Value</label><input type="text" name="value" class="form-control form-control-sm"></div>
-            <div class="col-md-2"><label class="form-label small">Farbe (1-8)</label><input type="number" name="color_state" class="form-control form-control-sm" value="1" min="1" max="8"></div>
-            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+            <div class="col-md-3"><label class="form-label small">Farbe (Design Studio / Picker)</label>{% include "domain_kit/includes/color_state_picker.html" %}</div>
+            <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">+</button></div>
         </form>
         {% endif %}
         <div class="table-responsive">
@@ -157,7 +166,7 @@
                         <td><span class="badge bg-secondary">{{ c.get_purpose_display }}</span></td>
                         <td class="fw-semibold">{{ c.name }}</td>
                         <td>{{ c.code }} {% if c.value %}({{ c.value }}){% endif %}</td>
-                        <td><span class="badge" style="background: var(--theme-state-{{ c.color_state }}, var(--app-primary));">Farbe {{ c.color_state }}</span></td>
+                        <td><span class="badge" style="{{ c.badge_style }}">{% if c.custom_color %}{{ c.custom_color }}{% else %}Farbe {{ c.color_state }}{% endif %}</span></td>
                         <td class="text-end">
                             {% if can_write %}
                             <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete_category"><input type="hidden" name="pk" value="{{ c.id }}"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button></form>
@@ -217,10 +226,10 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create_status">
             <div class="col-md-2"><label class="form-label small">Position</label><input type="number" name="position" class="form-control form-control-sm" value="15" required></div>
-            <div class="col-md-4"><label class="form-label small">Bezeichnung</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-3"><label class="form-label small">Bezeichnung</label><input type="text" name="name" class="form-control form-control-sm" required></div>
             <div class="col-md-2"><label class="form-label small">Scope</label><input type="text" name="scope" class="form-control form-control-sm" value="global"></div>
-            <div class="col-md-2"><label class="form-label small">Farbe (1-8)</label><input type="number" name="color_state" class="form-control form-control-sm" value="1" min="1" max="8"></div>
-            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+            <div class="col-md-4"><label class="form-label small">Farbe (Design Studio / Picker)</label>{% include "domain_kit/includes/color_state_picker.html" %}</div>
+            <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">+</button></div>
         </form>
         {% endif %}
         <table class="table table-sm table-hover align-middle mb-0">
@@ -229,7 +238,7 @@
                 {% for s in statuses %}
                 <tr>
                     <td class="fw-bold">{{ s.position }}</td>
-                    <td><span class="badge" style="background: var(--theme-state-{{ s.color_state }}, var(--app-primary));">{{ s.name }}</span></td>
+                    <td><span class="badge" style="{{ s.badge_style }}">{{ s.name }}</span></td>
                     <td>{{ s.scope }}</td>
                     <td>{% if s.is_final %}Ja{% else %}Nein{% endif %}</td>
                     <td class="text-end">
@@ -252,10 +261,11 @@
         <form method="post" class="row g-2 mb-3 align-items-end">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_role">
-            <div class="col-md-2"><label class="form-label small">Position</label><input type="number" name="position" class="form-control form-control-sm" value="10"></div>
-            <div class="col-md-4"><label class="form-label small">Rollen-Name</label><input type="text" name="name" class="form-control form-control-sm" required></div>
-            <div class="col-md-4"><label class="form-label small">Beschreibung</label><input type="text" name="description" class="form-control form-control-sm"></div>
-            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+            <div class="col-md-1"><label class="form-label small">Pos.</label><input type="number" name="position" class="form-control form-control-sm" value="10"></div>
+            <div class="col-md-3"><label class="form-label small">Rollen-Name</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-3"><label class="form-label small">Beschreibung</label><input type="text" name="description" class="form-control form-control-sm"></div>
+            <div class="col-md-4"><label class="form-label small">Farbe (Design Studio / Picker)</label>{% include "domain_kit/includes/color_state_picker.html" %}</div>
+            <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">+</button></div>
         </form>
         {% endif %}
         <table class="table table-sm table-hover align-middle mb-0">
@@ -264,7 +274,7 @@
                 {% for r in roles %}
                 <tr>
                     <td>{{ r.position }}</td>
-                    <td class="fw-semibold">{{ r.name }}</td>
+                    <td><span class="badge" style="{{ r.badge_style }}">{{ r.name }}</span></td>
                     <td>{{ r.category.name|default:"—" }}</td>
                     <td>{{ r.description }}</td>
                     <td class="text-end">
