@@ -212,6 +212,19 @@ class DomainKitTests(TestCase):
         role = Role.objects.get(name="Projektleiter")
         self.assertEqual(role.badge_style, "background: var(--theme-state-8, var(--app-primary));")
 
+        # Non-superuser staff cannot purge; superuser needs explicit confirmation
+        forbidden_purge = self.client.post("/domain/settings/", {"action": "purge_module", "module_key": "categories"})
+        self.assertEqual(forbidden_purge.status_code, 403)
+        super_u = User.objects.create_superuser(username="root_adm", password="pw", email="r@example.com")
+        self.client.force_login(super_u)
+        self.client.post("/domain/settings/", {"action": "purge_module", "module_key": "master_data"})
+        self.assertTrue(Category.objects.filter(name="Sonderkategorie").exists())
+        self.client.post(
+            "/domain/settings/",
+            {"action": "purge_module", "module_key": "master_data", "confirm_purge": "master_data"},
+        )
+        self.assertFalse(Category.objects.filter(name="Sonderkategorie").exists())
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

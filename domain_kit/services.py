@@ -188,6 +188,26 @@ def seed_domain_defaults() -> dict:
     }
 
 
+def count_module_data(module_key: str) -> int:
+    if module_key == "persons":
+        return Person.objects.count()
+    if module_key == "addresses":
+        return Address.objects.count()
+    if module_key == "contracts":
+        return AssetItem.objects.filter(asset_type="contract").count()
+    if module_key == "inventory":
+        return AssetItem.objects.filter(asset_type="inventory").count()
+    if module_key == "accounts":
+        return AssetItem.objects.filter(asset_type="account").count()
+    if module_key == "assets":
+        return AssetItem.objects.count()
+    if module_key == "documents":
+        return Document.objects.count()
+    if module_key == "master_data":
+        return Category.objects.count() + Unit.objects.count() + Status.objects.count() + Role.objects.count()
+    return 0
+
+
 def purge_module_data(module_key: str) -> int:
     if module_key == "persons":
         cnt, _ = Person.objects.all().delete()

@@ -112,21 +112,72 @@
     </div>
 </div>
 
+{% if request.user.is_superuser %}
 <div class="card shadow-sm border-danger">
-    <div class="card-header"><i class="bi bi-trash3 me-1"></i> Nicht benötigte Modul-Daten bereinigen (Purge)</div>
-    <div class="card-body d-flex flex-wrap gap-2 align-items-center">
-        {% for row in module_rows %}
-        <form method="post" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="purge_module">
-            <input type="hidden" name="module_key" value="{{ row.key }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
-                <i class="bi bi-trash me-1"></i> {{ row.key }} leeren
+    <div class="card-header"><i class="bi bi-exclamation-triangle me-1"></i> Nicht benötigte Modul-Daten bereinigen (Purge — nur Superuser/Admin)</div>
+    <div class="card-body">
+        <div class="alert alert-danger py-2 small mb-3">
+            <strong>Achtung:</strong> Beim Bereinigen werden alle Datensätze des jeweiligen Moduls unwiderruflich aus der Datenbank gelöscht.
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% for row in module_rows %}
+            {% if row.key != 'global_search' %}
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger rounded-pill ds-open-purge-modal"
+                    data-module="{{ row.key }}"
+                    data-label="{{ row.label }}"
+                    data-count="{{ row.record_count }}"
+                    {% if row.record_count == 0 %}disabled{% endif %}>
+                <i class="bi bi-trash me-1"></i> {{ row.key }} leeren ({{ row.record_count }})
             </button>
-        </form>
-        {% endfor %}
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
 </div>
+
+<!-- Purge Confirmation Modal -->
+<div class="modal fade" id="dsPurgeConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content border-danger">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="purge_module">
+            <input type="hidden" name="module_key" id="dsPurgeModuleKey" value="">
+            <input type="hidden" name="confirm_purge" id="dsPurgeConfirmVal" value="">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Modul-Daten unwiderruflich löschen?</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Du bist dabei, das Modul <strong id="dsPurgeLabel"></strong> zu leeren.</p>
+                <div class="alert alert-danger mb-0 py-2">
+                    Es werden <strong id="dsPurgeCount">0</strong> Datensätze unwiderruflich gelöscht!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                    <i class="bi bi-trash3 me-1"></i> Endgültig löschen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ds-open-purge-modal');
+    if (!btn) return;
+    document.getElementById('dsPurgeModuleKey').value = btn.dataset.module || '';
+    document.getElementById('dsPurgeConfirmVal').value = btn.dataset.module || '';
+    document.getElementById('dsPurgeLabel').textContent = btn.dataset.label || btn.dataset.module;
+    document.getElementById('dsPurgeCount').textContent = btn.dataset.count || '0';
+    if (typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('dsPurgeConfirmModal')).show();
+    }
+});
+</script>
+{% endif %}
 
 {% elif active_tab == 'categories' %}
 <div class="card shadow-sm mb-3">

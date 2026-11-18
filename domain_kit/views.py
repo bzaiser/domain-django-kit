@@ -23,7 +23,7 @@ from .models import (
     Status,
     Unit,
 )
-from .services import get_module_access, get_user_module_map, purge_module_data, seed_domain_defaults
+from .services import count_module_data, get_module_access, get_user_module_map, purge_module_data, seed_domain_defaults
 
 
 def _to_dec(val, default="0.00") -> Decimal:
@@ -462,8 +462,13 @@ def settings_page_view(request):
             messages.success(request, f"Standard-Stammdaten & Gruppen geladen ({stats}).")
             return redirect(f"{request.path}?tab=modules")
 
-        if action == "purge_module" and is_admin:
+        if action == "purge_module":
+            if not getattr(request.user, "is_superuser", False):
+                return HttpResponseForbidden("Nur Superuser/Admin darf Modul-Daten bereinigen.")
             mod_key = request.POST.get("module_key", "")
+            if request.POST.get("confirm_purge") != mod_key:
+                messages.error(request, "Löschung abgebrochen: Bestätigung fehlte.")
+                return redirect(f"{request.path}?tab=modules")
             deleted = purge_module_data(mod_key)
             messages.warning(request, f"Modul '{mod_key}' bereinigt ({deleted} Datensätze gelöscht).")
             return redirect(f"{request.path}?tab=modules")
@@ -550,6 +555,7 @@ def settings_page_view(request):
             "key": mod_key,
             "label": mod_label,
             "enabled": solo.is_module_enabled(mod_key),
+            "record_count": count_module_data(mod_key),
             "group_perms": [
                 {"group": g, "level": perm_lookup.get((g.id, mod_key), "read")}
                 for g in groups
