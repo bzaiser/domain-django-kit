@@ -53,7 +53,14 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
     if uploaded:
         doc.file = uploaded
         doc.file_name = uploaded.name[:180]
-        doc.extracted_text = extract_text_from_file(uploaded, uploaded.name)
+        try:
+            doc.extracted_text = extract_text_from_file(uploaded, uploaded.name)
+        except Exception:
+            doc.extracted_text = ""
+        try:
+            uploaded.seek(0)
+        except Exception:
+            pass
     elif request.POST.get("file_name"):
         doc.file_name = request.POST.get("file_name", "").strip()[:180]
     doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
