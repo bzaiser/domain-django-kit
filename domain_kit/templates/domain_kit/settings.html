@@ -1,0 +1,277 @@
+{% extends "design_studio/layouts/base.html" %}
+{% load i18n %}
+
+{% block title %}Stammdaten & Modul-Schaltzentrale{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h3 class="fw-bold mb-0"><i class="bi bi-sliders me-2"></i>Stammdaten & Modul-Schaltzentrale</h3>
+        <div class="text-muted small">Module per Häkchen aktivieren, Gruppenrechte (Gast / Mitarbeiter / HR) steuern und Stammdaten pflegen</div>
+    </div>
+    {% if is_admin %}
+    <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="seed_defaults">
+        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-magic me-1"></i> Standard-Stammdaten & Gruppen laden
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<ul class="nav nav-pills gap-2 mb-4">
+    {% if is_admin %}
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'modules' %}active{% endif %}" href="?tab=modules">
+            <i class="bi bi-toggles me-1"></i> 1. Modul- & Gruppen-Schaltzentrale
+        </a>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'categories' %}active{% endif %}" href="?tab=categories">
+            <i class="bi bi-tags me-1"></i> 2. Kategorien (nach Zweck)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'units' %}active{% endif %}" href="?tab=units">
+            <i class="bi bi-rulers me-1"></i> 3. Maßeinheiten
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'statuses' %}active{% endif %}" href="?tab=statuses">
+            <i class="bi bi-list-ol me-1"></i> 4. Status (mit Position & Farbe)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'roles' %}active{% endif %}" href="?tab=roles">
+            <i class="bi bi-person-badge me-1"></i> 5. Rollen
+        </a>
+    </li>
+</ul>
+
+{% if active_tab == 'modules' and is_admin %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi bi-shield-lock me-1"></i> Modul-Aktivierung & Gruppen-Berechtigungs-Matrix</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_modules">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Modul / Thema</th>
+                            <th class="text-center">Global Aktiv</th>
+                            {% for g in groups %}
+                            <th>Gruppe: {{ g.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in module_rows %}
+                        <tr>
+                            <td class="fw-semibold">{{ row.label }} <code class="small text-muted">({{ row.key }})</code></td>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input" name="enable_{{ row.key }}" {% if row.enabled %}checked{% endif %}>
+                            </td>
+                            {% for gp in row.group_perms %}
+                            <td>
+                                <select name="perm_{{ gp.group.id }}_{{ row.key }}" class="form-select form-select-sm">
+                                    {% for val, lbl in access_choices %}
+                                    <option value="{{ val }}" {% if gp.level == val %}selected{% endif %}>{{ lbl }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold" style="background: var(--app-gradient); border: none;">
+                    <i class="bi bi-save me-1"></i> Schaltzentrale speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-danger">
+    <div class="card-header"><i class="bi bi-trash3 me-1"></i> Nicht benötigte Modul-Daten bereinigen (Purge)</div>
+    <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        {% for row in module_rows %}
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="purge_module">
+            <input type="hidden" name="module_key" value="{{ row.key }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                <i class="bi bi-trash me-1"></i> {{ row.key }} leeren
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+{% elif active_tab == 'categories' %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-tags me-1"></i> Kategorien (nach Zweck gefiltert)</span>
+        <div class="d-flex gap-1">
+            <a href="?tab=categories" class="btn btn-sm btn-light rounded-pill">Alle</a>
+            {% for p_key, p_lbl in purpose_choices %}
+            <a href="?tab=categories&purpose={{ p_key }}" class="btn btn-sm btn-light rounded-pill">{{ p_lbl }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-body">
+        {% if can_write %}
+        <form method="post" class="row g-2 mb-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_category">
+            <div class="col-md-3"><label class="form-label small">Bezeichnung</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-3">
+                <label class="form-label small">Zweck</label>
+                <select name="purpose" class="form-select form-select-sm">
+                    {% for p_key, p_lbl in purpose_choices %}<option value="{{ p_key }}">{{ p_lbl }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><label class="form-label small">Code / Value</label><input type="text" name="value" class="form-control form-control-sm"></div>
+            <div class="col-md-2"><label class="form-label small">Farbe (1-8)</label><input type="number" name="color_state" class="form-control form-control-sm" value="1" min="1" max="8"></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+        </form>
+        {% endif %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead><tr><th>Position</th><th>Zweck</th><th>Bezeichnung</th><th>Code / Value</th><th>Farbe</th><th class="text-end">Aktion</th></tr></thead>
+                <tbody>
+                    {% for c in categories %}
+                    <tr>
+                        <td>{{ c.position }}</td>
+                        <td><span class="badge bg-secondary">{{ c.get_purpose_display }}</span></td>
+                        <td class="fw-semibold">{{ c.name }}</td>
+                        <td>{{ c.code }} {% if c.value %}({{ c.value }}){% endif %}</td>
+                        <td><span class="badge" style="background: var(--theme-state-{{ c.color_state }}, var(--app-primary));">Farbe {{ c.color_state }}</span></td>
+                        <td class="text-end">
+                            {% if can_write %}
+                            <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete_category"><input type="hidden" name="pk" value="{{ c.id }}"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button></form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% elif active_tab == 'units' %}
+<div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-rulers me-1"></i> Maßeinheiten (Stück, Euro, Meter, Stunden, Liter, qm ...)</div>
+    <div class="card-body">
+        {% if can_write %}
+        <form method="post" class="row g-2 mb-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_unit">
+            <div class="col-md-3"><label class="form-label small">Name</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-2"><label class="form-label small">Symbol</label><input type="text" name="symbol" class="form-control form-control-sm" required></div>
+            <div class="col-md-3"><label class="form-label small">Dimension</label><input type="text" name="dimension" class="form-control form-control-sm" value="count"></div>
+            <div class="col-md-2"><label class="form-label small">Position</label><input type="number" name="position" class="form-control form-control-sm" value="10"></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+        </form>
+        {% endif %}
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead><tr><th>Pos.</th><th>Name</th><th>Symbol</th><th>Dimension</th><th>Dezimal</th><th class="text-end">Aktion</th></tr></thead>
+            <tbody>
+                {% for u in units %}
+                <tr>
+                    <td>{{ u.position }}</td>
+                    <td class="fw-semibold">{{ u.name }}</td>
+                    <td><code>{{ u.symbol }}</code></td>
+                    <td>{{ u.get_dimension_display }}</td>
+                    <td>{{ u.decimals }}</td>
+                    <td class="text-end">
+                        {% if can_write %}
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete_unit"><input type="hidden" name="pk" value="{{ u.id }}"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% elif active_tab == 'statuses' %}
+<div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-list-ol me-1"></i> Status (sortiert nach Position, nicht alphabetisch!)</div>
+    <div class="card-body">
+        {% if can_write %}
+        <form method="post" class="row g-2 mb-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_status">
+            <div class="col-md-2"><label class="form-label small">Position</label><input type="number" name="position" class="form-control form-control-sm" value="15" required></div>
+            <div class="col-md-4"><label class="form-label small">Bezeichnung</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-2"><label class="form-label small">Scope</label><input type="text" name="scope" class="form-control form-control-sm" value="global"></div>
+            <div class="col-md-2"><label class="form-label small">Farbe (1-8)</label><input type="number" name="color_state" class="form-control form-control-sm" value="1" min="1" max="8"></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+        </form>
+        {% endif %}
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead><tr><th>Position</th><th>Status-Badge (Farbe)</th><th>Scope</th><th>Abschluss?</th><th class="text-end">Aktion</th></tr></thead>
+            <tbody>
+                {% for s in statuses %}
+                <tr>
+                    <td class="fw-bold">{{ s.position }}</td>
+                    <td><span class="badge" style="background: var(--theme-state-{{ s.color_state }}, var(--app-primary));">{{ s.name }}</span></td>
+                    <td>{{ s.scope }}</td>
+                    <td>{% if s.is_final %}Ja{% else %}Nein{% endif %}</td>
+                    <td class="text-end">
+                        {% if can_write %}
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete_status"><input type="hidden" name="pk" value="{{ s.id }}"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% elif active_tab == 'roles' %}
+<div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-person-badge me-1"></i> Rollen (Mitarbeiter, Gast, Personalverantwortlicher ...)</div>
+    <div class="card-body">
+        {% if can_write %}
+        <form method="post" class="row g-2 mb-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_role">
+            <div class="col-md-2"><label class="form-label small">Position</label><input type="number" name="position" class="form-control form-control-sm" value="10"></div>
+            <div class="col-md-4"><label class="form-label small">Rollen-Name</label><input type="text" name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-4"><label class="form-label small">Beschreibung</label><input type="text" name="description" class="form-control form-control-sm"></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill">Hinzufügen</button></div>
+        </form>
+        {% endif %}
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead><tr><th>Pos.</th><th>Rolle</th><th>Kategorie</th><th>Beschreibung</th><th class="text-end">Aktion</th></tr></thead>
+            <tbody>
+                {% for r in roles %}
+                <tr>
+                    <td>{{ r.position }}</td>
+                    <td class="fw-semibold">{{ r.name }}</td>
+                    <td>{{ r.category.name|default:"—" }}</td>
+                    <td>{{ r.description }}</td>
+                    <td class="text-end">
+                        {% if can_write %}
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete_role"><input type="hidden" name="pk" value="{{ r.id }}"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

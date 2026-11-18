@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "domain-django-kit"
+version = "1.0.0"
+description = "Reusable Django master data (categories by purpose, units, status by position, roles), persons/addresses, assets (contracts/inventory/accounts), documents, global search, and group-based module toggle matrix for django-design-studio."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "Django>=4.2",
+]
+
+[tool.setuptools.packages.find]
+include = ["domain_kit*"]
+
+[tool.setuptools.package-data]
+domain_kit = [
+    "templates/**/*",
+]

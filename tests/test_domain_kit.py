@@ -1,0 +1,177 @@
+import os
+import sys
+
+import django
+from django.conf import settings
+from django.core.management import call_command
+from django.test import Client, TestCase
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DS_DIR = os.path.join(os.path.dirname(BASE_DIR), "django-design-studio")
+for p in (BASE_DIR, DS_DIR):
+    if p not in sys.path and os.path.isdir(p):
+        sys.path.insert(0, p)
+
+if not settings.configured:
+    settings.configure(
+        DEBUG=True,
+        SECRET_KEY="test-domain-kit",
+        DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+        INSTALLED_APPS=[
+            "django.contrib.auth",
+            "django.contrib.contenttypes",
+            "django.contrib.sessions",
+            "django.contrib.messages",
+            "django.contrib.staticfiles",
+            "design_studio",
+            "domain_kit",
+        ],
+        MIDDLEWARE=[
+            "django.contrib.sessions.middleware.SessionMiddleware",
+            "django.middleware.common.CommonMiddleware",
+            "django.middleware.csrf.CsrfViewMiddleware",
+            "django.contrib.auth.middleware.AuthenticationMiddleware",
+            "django.contrib.messages.middleware.MessageMiddleware",
+        ],
+        ROOT_URLCONF="tests.test_domain_kit",
+        TEMPLATES=[{
+            "BACKEND": "django.template.backends.django.DjangoTemplates",
+            "APP_DIRS": True,
+            "OPTIONS": {
+                "context_processors": [
+                    "django.template.context_processors.request",
+                    "django.contrib.auth.context_processors.auth",
+                    "django.contrib.messages.context_processors.messages",
+                    "design_studio.context_processors.theme_context",
+                    "domain_kit.context_processors.domain_context",
+                ],
+            },
+        }],
+        STATIC_URL="/static/",
+    )
+    django.setup()
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.urls import include, path
+from domain_kit.models import AssetItem, Category, Document, DomainModuleSettings, Person, Status, Unit
+from domain_kit.services import get_module_access, purge_module_data, seed_domain_defaults
+
+User = get_user_model()
+
+urlpatterns = [
+    path("design-studio/", include("design_studio.urls")),
+    path("domain/", include("domain_kit.urls")),
+]
+
+
+class DomainKitTests(TestCase):
+    def setUp(self):
+        seed_domain_defaults()
+        self.admin = User.objects.create_user(username="hr_admin", password="pw", is_staff=True)
+        self.guest = User.objects.create_user(username="guest_u", password="pw")
+        self.guest.groups.add(Group.objects.get(name="Gast"))
+        self.emp = User.objects.create_user(username="emp_u", password="pw")
+        self.emp.groups.add(Group.objects.get(name="Mitarbeiter"))
+        self.client = Client()
+
+    def test_master_data_status_position_ordering_and_purpose_filtering(self):
+        statuses = list(Status.objects.values_list("name", flat=True))
+        # Must follow position (Offen=10, Begonnen=20, ..., Zu klein=90, Archiviert=100), not alphabetical
+        self.assertEqual(statuses[0], "Offen")
+        self.assertEqual(statuses[1], "Begonnen")
+        self.assertIn("Zu groß", statuses)
+        self.assertIn("Zu klein", statuses)
+
+        person_cats = list(Category.for_purpose("person").values_list("name", flat=True))
+        self.assertIn("Mitarbeiter", person_cats)
+        self.assertIn("Gast", person_cats)
+        self.assertIn("Personalverantwortlicher", person_cats)
+        self.assertNotIn("Girokonto", person_cats)
+
+        symbols = list(Unit.objects.values_list("symbol", flat=True))
+        for sym in ("Stk.", "€", "m", "Std.", "l", "m²"):
+            self.assertIn(sym, symbols)
+
+    def test_group_permission_matrix_and_module_toggle_and_purge(self):
+        self.assertEqual(get_module_access(self.guest, "persons"), "read")
+        self.assertEqual(get_module_access(self.guest, "accounts"), "none")
+        self.assertEqual(get_module_access(self.emp, "inventory"), "write")
+        self.assertEqual(get_module_access(self.emp, "persons"), "read")
+
+        # Guest cannot POST to persons
+        self.client.force_login(self.guest)
+        forbidden = self.client.post("/domain/persons/", {"action": "create_person", "first_name": "Nope"})
+        self.assertEqual(forbidden.status_code, 403)
+
+        # Disable persons globally
+        solo = DomainModuleSettings.get_solo()
+        solo.enable_persons = False
+        solo.save()
+        self.assertEqual(get_module_access(self.admin, "persons"), "none")
+
+    def test_persons_assets_documents_and_global_search_pages(self):
+        self.client.force_login(self.admin)
+
+        # 1. Create Person + Address
+        self.client.post(
+            "/domain/persons/",
+            {"action": "create_person", "first_name": "Max", "last_name": "Muster", "company": "NAS GmbH"},
+        )
+        p = Person.objects.get(first_name="Max")
+        self.client.post(
+            "/domain/persons/",
+            {"action": "create_address", "person_id": p.id, "label": "Büro", "street": "Hauptstr. 1", "city": "Berlin"},
+        )
+        self.assertEqual(self.client.get("/domain/persons/?tab=persons").status_code, 200)
+        self.assertEqual(self.client.get("/domain/persons/?tab=addresses").status_code, 200)
+
+        # 2. Create Contract, Inventory, Account & Document
+        eur = Unit.objects.get(symbol="€")
+        for atype, title, val in (
+            ("contract", "Glasfaser Vertrag", "59.90"),
+            ("inventory", "Synology NAS DS923+", "650.00"),
+            ("account", "Geschäftskonto", "12500.00"),
+        ):
+            self.client.post(
+                "/domain/assets/",
+                {
+                    "action": "create_asset",
+                    "asset_type": atype,
+                    "title": title,
+                    "quantity": val,
+                    "unit_id": eur.id,
+                    "person_id": p.id,
+                },
+            )
+        self.assertEqual(AssetItem.objects.count(), 3)
+        self.assertEqual(self.client.get("/domain/assets/?tab=overview").status_code, 200)
+        self.assertEqual(self.client.get("/domain/assets/?tab=contract").status_code, 200)
+        self.assertEqual(self.client.get("/domain/assets/?tab=inventory").status_code, 200)
+        self.assertEqual(self.client.get("/domain/assets/?tab=account").status_code, 200)
+
+        # 3. Document & Global Search
+        self.client.post(
+            "/domain/documents/",
+            {"action": "create_doc", "title": "Rechnung Synology", "topic": "inventory", "amount": "650.00", "unit_id": eur.id},
+        )
+        self.assertEqual(Document.objects.count(), 1)
+        self.assertEqual(self.client.get("/domain/documents/").status_code, 200)
+
+        search_resp = self.client.get("/domain/search/?q=Synology")
+        self.assertEqual(search_resp.status_code, 200)
+        html = search_resp.content.decode("utf-8")
+        self.assertIn("Synology NAS DS923+", html)
+        self.assertIn("Rechnung Synology", html)
+
+        # 4. Purge inventory
+        purge_module_data("inventory")
+        self.assertEqual(AssetItem.objects.filter(asset_type="inventory").count(), 0)
+        self.assertEqual(AssetItem.objects.filter(asset_type="contract").count(), 1)
+
+
+if __name__ == "__main__":
+    from django.test.runner import DiscoverRunner
+    call_command("migrate", verbosity=0)
+    runner = DiscoverRunner(verbosity=2)
+    sys.exit(bool(runner.run_tests(["tests.test_domain_kit"])))

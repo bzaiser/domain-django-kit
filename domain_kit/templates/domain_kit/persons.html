@@ -1,0 +1,371 @@
+{% extends "design_studio/layouts/base.html" %}
+{% load i18n %}
+
+{% block title %}Personen & Adressen{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h3 class="fw-bold mb-0"><i class="bi bi-people me-2"></i>Personen, Rollen & Adressen</h3>
+        <div class="text-muted small">Stammdaten, Zuständigkeiten, Standorte und verknüpfte Dokumente</div>
+    </div>
+    {% if can_write %}
+    <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#personCreateModal" style="background: var(--app-gradient); border: none;">
+            <i class="bi bi-person-plus me-1"></i> Neue Person
+        </button>
+        {% if mod_map.addresses.can_write %}
+        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addressCreateModal">
+            <i class="bi bi-geo-alt me-1"></i> Neue Adresse
+        </button>
+        {% endif %}
+        {% if mod_map.documents.can_write %}
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#personDocCreateModal">
+            <i class="bi bi-file-earmark-plus me-1"></i> Neues Dokument
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reiter (Tabs) -->
+<ul class="nav nav-pills gap-2 mb-4">
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'persons' %}active{% endif %}" href="?tab=persons">
+            <i class="bi bi-people me-1"></i> 1. Personen & Rollen ({{ kpi_persons_total }})
+        </a>
+    </li>
+    {% if mod_map.addresses.can_read %}
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'addresses' %}active{% endif %}" href="?tab=addresses">
+            <i class="bi bi-geo-alt me-1"></i> 2. Adressen ({{ kpi_addresses_total }})
+        </a>
+    </li>
+    {% endif %}
+    {% if mod_map.documents.can_read %}
+    <li class="nav-item">
+        <a class="nav-link rounded-pill {% if active_tab == 'documents' %}active{% endif %}" href="?tab=documents">
+            <i class="bi bi-folder2-open me-1"></i> 3. Dokumente zum Thema ({{ kpi_docs_total }})
+        </a>
+    </li>
+    {% endif %}
+</ul>
+
+{% if active_tab == 'persons' %}
+<div class="bento-kpi-grid mb-4">
+    {% include "design_studio/components/kpi_card.html" with title="Personen gesamt" value=kpi_persons_total unit="Pers." icon="bi-people" size="sm" state=1 %}
+    {% include "design_studio/components/kpi_card.html" with title="Verfügbare Rollen" value=kpi_roles_total unit="Rollen" icon="bi-person-badge" size="sm" state=2 %}
+    {% include "design_studio/components/kpi_card.html" with title="Adressen" value=kpi_addresses_total unit="Orte" icon="bi-geo-alt" size="sm" state=3 %}
+    {% include "design_studio/components/kpi_card.html" with title="Dokumente" value=kpi_docs_total unit="Dok." icon="bi-folder2-open" size="sm" state=4 %}
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-table me-1"></i> Personen & Rollen</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Kategorie (Zweck)</th>
+                    <th>Rollen</th>
+                    <th>Status</th>
+                    <th>Verantwortlich</th>
+                    <th>Kontakt</th>
+                    <th class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in persons %}
+                <tr>
+                    <td class="fw-semibold">{{ p.full_name }}{% if p.company %}<div class="small text-muted">{{ p.company }}</div>{% endif %}</td>
+                    <td>
+                        {% if p.category %}
+                        <span class="badge" style="background: var(--theme-state-{{ p.category.color_state }}, var(--app-primary));">{{ p.category.name }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% for r in p.roles.all %}
+                        <span class="badge bg-secondary me-1">{{ r.name }}</span>
+                        {% empty %}—{% endfor %}
+                    </td>
+                    <td>
+                        {% if p.status %}
+                        <span class="badge" style="background: var(--theme-state-{{ p.status.color_state }}, var(--app-primary));">{{ p.status.name }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ p.responsible_person.full_name|default:"—" }}</td>
+                    <td class="small">{{ p.email|default:p.phone|default:"—" }}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#personViewModal-{{ p.id }}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        {% if can_write %}
+                        <button class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#personEditModal-{{ p.id }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_person">
+                            <input type="hidden" name="pk" value="{{ p.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- View Modal -->
+                <div class="modal fade" id="personViewModal-{{ p.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title">{{ p.full_name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body small">
+                                <p><strong>Kategorie:</strong> {{ p.category.name|default:"—" }} | <strong>Status:</strong> {{ p.status.name|default:"—" }}</p>
+                                <p><strong>E-Mail:</strong> {{ p.email|default:"—" }} | <strong>Telefon:</strong> {{ p.phone|default:"—" }}</p>
+                                <p><strong>Firma / Abteilung:</strong> {{ p.company|default:"—" }} / {{ p.department|default:"—" }}</p>
+                                <p><strong>Verantwortlich:</strong> {{ p.responsible_person.full_name|default:"—" }}</p>
+                                <p><strong>Notizen:</strong> {{ p.notes|default:"—" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if can_write %}
+                <!-- Edit Modal -->
+                <div class="modal fade" id="personEditModal-{{ p.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <form method="post" class="modal-content">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_person">
+                            <input type="hidden" name="pk" value="{{ p.id }}">
+                            <input type="hidden" name="role_ids_present" value="1">
+                            <div class="modal-header"><h5 class="modal-title">Person bearbeiten: {{ p.full_name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body">
+                                <div class="row g-2">
+                                    <div class="col-md-6"><label class="form-label small">Vorname</label><input type="text" name="first_name" class="form-control" value="{{ p.first_name }}" required></div>
+                                    <div class="col-md-6"><label class="form-label small">Nachname</label><input type="text" name="last_name" class="form-control" value="{{ p.last_name }}"></div>
+                                    <div class="col-md-6"><label class="form-label small">E-Mail</label><input type="email" name="email" class="form-control" value="{{ p.email }}"></div>
+                                    <div class="col-md-6"><label class="form-label small">Telefon</label><input type="text" name="phone" class="form-control" value="{{ p.phone }}"></div>
+                                    <div class="col-md-6"><label class="form-label small">Firma</label><input type="text" name="company" class="form-control" value="{{ p.company }}"></div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Kategorie (Zweck: Person)</label>
+                                        <select name="category_id" class="form-select">
+                                            <option value="">—</option>
+                                            {% for c in person_categories %}<option value="{{ c.id }}" {% if p.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Status</label>
+                                        <select name="status_id" class="form-select">
+                                            <option value="">—</option>
+                                            {% for s in statuses %}<option value="{{ s.id }}" {% if p.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Verantwortlicher</label>
+                                        <select name="responsible_id" class="form-select">
+                                            <option value="">—</option>
+                                            {% for rp in persons %}{% if rp.id != p.id %}<option value="{{ rp.id }}" {% if p.responsible_person_id == rp.id %}selected{% endif %}>{{ rp.full_name }}</option>{% endif %}{% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12"><label class="form-label small">Notizen</label><textarea name="notes" class="form-control" rows="2">{{ p.notes }}</textarea></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Noch keine Personen angelegt.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% elif active_tab == 'addresses' %}
+<div class="bento-kpi-grid mb-4">
+    {% include "design_studio/components/kpi_card.html" with title="Adressen gesamt" value=kpi_addresses_total unit="Orte" icon="bi-geo-alt" size="sm" state=3 %}
+    {% include "design_studio/components/kpi_card.html" with title="Verknüpfte Personen" value=kpi_persons_total unit="Pers." icon="bi-people" size="sm" state=1 %}
+</div>
+<div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-geo-alt me-1"></i> Adressen & Standorte</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>Bezeichnung</th><th>Person</th><th>Straße</th><th>PLZ / Ort</th><th>Kategorie</th><th class="text-end">Aktionen</th></tr>
+            </thead>
+            <tbody>
+                {% for a in addresses %}
+                <tr>
+                    <td class="fw-semibold">{{ a.label }}</td>
+                    <td>{{ a.person.full_name|default:"—" }}</td>
+                    <td>{{ a.street }}</td>
+                    <td>{{ a.postal_code }} {{ a.city }} ({{ a.country }})</td>
+                    <td>{{ a.category.name|default:"—" }}</td>
+                    <td class="text-end">
+                        {% if can_write %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_address">
+                            <input type="hidden" name="pk" value="{{ a.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Noch keine Adressen angelegt.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% elif active_tab == 'documents' %}
+<div class="bento-kpi-grid mb-4">
+    {% include "design_studio/components/kpi_card.html" with title="Dokumente (Personen)" value=kpi_docs_total unit="Dok." icon="bi-folder2-open" size="sm" state=4 %}
+</div>
+<div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-folder2-open me-1"></i> Dokumente zum Thema Personen</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>Titel</th><th>Person</th><th>Kategorie</th><th>Status</th><th>Betrag</th><th>Datum</th><th class="text-end">Aktionen</th></tr>
+            </thead>
+            <tbody>
+                {% for d in person_docs %}
+                <tr>
+                    <td class="fw-semibold">{{ d.title }}</td>
+                    <td>{{ d.person.full_name|default:"—" }}</td>
+                    <td>{{ d.category.name|default:"—" }}</td>
+                    <td>{% if d.status %}<span class="badge" style="background: var(--theme-state-{{ d.status.color_state }}, var(--app-primary));">{{ d.status.name }}</span>{% else %}—{% endif %}</td>
+                    <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>
+                    <td>{{ d.document_date|default:"—" }}</td>
+                    <td class="text-end">
+                        {% if can_write %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_doc">
+                            <input type="hidden" name="pk" value="{{ d.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Keine Dokumente zum Thema Personen vorhanden.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if can_write %}
+<!-- Create Person Modal -->
+<div class="modal fade" id="personCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="post" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_person">
+            <input type="hidden" name="role_ids_present" value="1">
+            <div class="modal-header"><h5 class="modal-title">Neue Person anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label small">Vorname</label><input type="text" name="first_name" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label small">Nachname</label><input type="text" name="last_name" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label small">E-Mail</label><input type="email" name="email" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label small">Telefon</label><input type="text" name="phone" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label small">Firma</label><input type="text" name="company" class="form-control"></div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Kategorie (Zweck: Person)</label>
+                        <select name="category_id" class="form-select">
+                            <option value="">—</option>
+                            {% for c in person_categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Status</label>
+                        <select name="status_id" class="form-select">
+                            <option value="">—</option>
+                            {% for s in statuses %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Rollen</label>
+                        <select name="role_ids" class="form-select" multiple>
+                            {% for r in roles %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12"><label class="form-label small">Notizen</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Anlegen</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Address Modal -->
+<div class="modal fade" id="addressCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_address">
+            <div class="modal-header"><h5 class="modal-title">Neue Adresse anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-2"><label class="form-label small">Bezeichnung</label><input type="text" name="label" class="form-control" value="Hauptadresse" required></div>
+                <div class="mb-2">
+                    <label class="form-label small">Person</label>
+                    <select name="person_id" class="form-select">
+                        <option value="">—</option>
+                        {% for p in persons %}<option value="{{ p.id }}">{{ p.full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2"><label class="form-label small">Straße & Hausnr.</label><input type="text" name="street" class="form-control" required></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><label class="form-label small">PLZ</label><input type="text" name="postal_code" class="form-control"></div>
+                    <div class="col-8"><label class="form-label small">Ort</label><input type="text" name="city" class="form-control" required></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Anlegen</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Person Document Modal -->
+<div class="modal fade" id="personDocCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_doc">
+            <div class="modal-header"><h5 class="modal-title">Neues Dokument (Thema Personen)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-2"><label class="form-label small">Titel</label><input type="text" name="title" class="form-control" required></div>
+                <div class="mb-2">
+                    <label class="form-label small">Person</label>
+                    <select name="person_id" class="form-select">
+                        <option value="">—</option>
+                        {% for p in persons %}<option value="{{ p.id }}">{{ p.full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><label class="form-label small">Betrag / Wert</label><input type="text" name="amount" class="form-control" value="0.00"></div>
+                    <div class="col-6">
+                        <label class="form-label small">Einheit</label>
+                        <select name="unit_id" class="form-select">
+                            <option value="">—</option>
+                            {% for u in units %}<option value="{{ u.id }}">{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-2"><label class="form-label small">Dateiname / Pfad</label><input type="text" name="file_name" class="form-control"></div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

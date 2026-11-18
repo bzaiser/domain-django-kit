@@ -1,0 +1,69 @@
+{% extends "design_studio/layouts/base.html" %}
+{% load i18n %}
+
+{% block title %}Globale Suche{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h3 class="fw-bold mb-1"><i class="bi bi-search me-2"></i>Globale Suche</h3>
+    <form method="get" class="d-flex gap-2 mt-2">
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Personen, Adressen, Verträge, Inventar, Konten, Dokumente, Kategorien durchsuchen..." autofocus>
+        <button type="submit" class="btn btn-primary rounded-pill px-4" style="background: var(--app-gradient); border: none;">Suchen</button>
+    </form>
+</div>
+
+{% if q %}
+<div class="bento-kpi-grid mb-4">
+    {% include "design_studio/components/kpi_card.html" with title="Treffer gesamt" value=total_hits unit="Treffer" icon="bi-search" size="sm" state=1 %}
+    {% include "design_studio/components/kpi_card.html" with title="Personen" value=found_persons|length unit="Pers." icon="bi-people" size="sm" state=2 %}
+    {% include "design_studio/components/kpi_card.html" with title="Assets" value=found_assets|length unit="Assets" icon="bi-boxes" size="sm" state=3 %}
+    {% include "design_studio/components/kpi_card.html" with title="Dokumente" value=found_documents|length unit="Dok." icon="bi-folder2-open" size="sm" state=4 %}
+</div>
+
+{% if found_persons %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-people me-1"></i> Gefundene Personen ({{ found_persons|length }})</div>
+    <ul class="list-group list-group-flush">
+        {% for p in found_persons %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><strong>{{ p.full_name }}</strong> {% if p.company %}({{ p.company }}){% endif %} · {{ p.email }}</span>
+            <a href="{% url 'domain_kit:persons' %}?tab=persons" class="btn btn-sm btn-outline-primary rounded-pill">Zu Personen</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if found_assets %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-boxes me-1"></i> Gefundene Assets ({{ found_assets|length }})</div>
+    <ul class="list-group list-group-flush">
+        {% for a in found_assets %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="badge bg-secondary me-2">{{ a.get_asset_type_display }}</span><strong>{{ a.title }}</strong> ({{ a.quantity }} {{ a.unit.symbol|default:"" }})</span>
+            <a href="{% url 'domain_kit:assets' %}?tab={{ a.asset_type }}" class="btn btn-sm btn-outline-primary rounded-pill">Zum Asset</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if found_documents %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-folder2-open me-1"></i> Gefundene Dokumente ({{ found_documents|length }})</div>
+    <ul class="list-group list-group-flush">
+        {% for d in found_documents %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><strong>{{ d.title }}</strong> ({{ d.get_topic_display }})</span>
+            <a href="{% url 'domain_kit:documents' %}" class="btn btn-sm btn-outline-primary rounded-pill">Zu Dokumenten</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if total_hits == 0 %}
+<div class="alert alert-info">Keine Treffer für „{{ q }}“ in den für dich freigegebenen Modulen.</div>
+{% endif %}
+{% endif %}
+{% endblock %}
