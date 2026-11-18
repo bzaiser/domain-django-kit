@@ -1,0 +1,163 @@
+<div class="modal fade" id="{{ modal_id|default:'docCreateModal' }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" enctype="multipart/form-data" class="modal-content ds-upload-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_doc">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cloud-upload me-1"></i> {{ modal_title|default:"Dokument hochladen" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="border border-2 border-dashed rounded-3 p-3 text-center mb-3 bg-body-tertiary ds-dropzone" style="cursor: pointer;">
+                    <i class="bi bi-file-earmark-arrow-up fs-2 text-primary d-block mb-1"></i>
+                    <div class="small fw-semibold">Datei hierher ziehen oder klicken zum Auswählen</div>
+                    <div class="small text-muted ds-file-info">PDF, Bild, Office-Datei oder beliebiges Dokument</div>
+                    <input type="file" name="file" class="form-control form-control-sm mt-2 ds-file-input">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small">Titel (leer = Dateiname)</label>
+                    <input type="text" name="title" class="form-control form-control-sm ds-doc-title" placeholder="z. B. Rechnung 2026-01">
+                </div>
+
+                {% if show_topic_select %}
+                <div class="mb-2">
+                    <label class="form-label small">Thema</label>
+                    <select name="topic" class="form-select form-select-sm">
+                        {% if asset_topics_only %}
+                        <option value="asset">Asset (Allgemein)</option>
+                        <option value="contract">Verträge</option>
+                        <option value="inventory">Inventar</option>
+                        <option value="account">Konten</option>
+                        {% else %}
+                        <option value="general">Allgemein</option>
+                        <option value="person">Personen & Adressen</option>
+                        <option value="contract">Verträge</option>
+                        <option value="inventory">Inventar</option>
+                        <option value="account">Konten</option>
+                        {% endif %}
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if show_person_select %}
+                <div class="mb-2">
+                    <label class="form-label small">Person</label>
+                    <select name="person_id" class="form-select form-select-sm">
+                        <option value="">—</option>
+                        {% for p in persons %}<option value="{{ p.id }}">{{ p.full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if show_asset_select %}
+                <div class="mb-2">
+                    <label class="form-label small">Verknüpftes Asset</label>
+                    <select name="asset_id" class="form-select form-select-sm">
+                        <option value="">—</option>
+                        {% for a in all_assets %}<option value="{{ a.id }}">{{ a.title }} ({{ a.get_asset_type_display }})</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><label class="form-label small">Betrag</label><input type="text" name="amount" class="form-control form-control-sm" value="0.00"></div>
+                    <div class="col-6">
+                        <label class="form-label small">Einheit</label>
+                        <select name="unit_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for u in units %}<option value="{{ u.id }}">{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Upload Progress & Notification -->
+                <div class="d-none mt-3 ds-upload-progress-wrap">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="ds-upload-status">Lade hoch...</span>
+                        <span class="fw-bold ds-upload-pct">0%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated ds-upload-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="alert py-2 small mt-2 d-none ds-upload-alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4 fw-bold ds-upload-submit" style="background: var(--app-gradient); border: none;">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> Hochladen & Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not ds_upload_script_loaded %}
+<script>
+if (!window._dsUploadBound) {
+    window._dsUploadBound = true;
+    document.addEventListener('change', function (e) {
+        if (!e.target.classList.contains('ds-file-input')) return;
+        var f = e.target.files && e.target.files[0];
+        var form = e.target.closest('form');
+        if (!f || !form) return;
+        var info = form.querySelector('.ds-file-info');
+        if (info) info.textContent = f.name + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB)';
+        var titleEl = form.querySelector('.ds-doc-title');
+        if (titleEl && !titleEl.value.trim()) titleEl.value = f.name;
+    });
+    document.addEventListener('submit', function (e) {
+        var form = e.target.closest('.ds-upload-form');
+        if (!form) return;
+        e.preventDefault();
+        var wrap = form.querySelector('.ds-upload-progress-wrap');
+        var bar = form.querySelector('.ds-upload-bar');
+        var pctEl = form.querySelector('.ds-upload-pct');
+        var stEl = form.querySelector('.ds-upload-status');
+        var alertEl = form.querySelector('.ds-upload-alert');
+        var submitBtn = form.querySelector('.ds-upload-submit');
+        if (wrap) wrap.classList.remove('d-none');
+        if (alertEl) alertEl.classList.add('d-none');
+        if (submitBtn) submitBtn.disabled = true;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', form.getAttribute('action') || window.location.href, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.upload.onprogress = function (ev) {
+            if (!ev.lengthComputable) return;
+            var p = Math.round((ev.loaded / ev.total) * 100);
+            if (bar) bar.style.width = p + '%';
+            if (pctEl) pctEl.textContent = p + '%';
+            if (stEl) stEl.textContent = p < 100 ? 'Übertrage Datei...' : 'Verarbeite...';
+        };
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                if (bar) { bar.style.width = '100%'; bar.classList.remove('progress-bar-animated'); bar.classList.add('bg-success'); }
+                if (pctEl) pctEl.textContent = '100%';
+                if (stEl) stEl.textContent = 'Fertig!';
+                if (alertEl) {
+                    alertEl.className = 'alert alert-success py-2 small mt-2 ds-upload-alert';
+                    alertEl.textContent = 'Upload erfolgreich abgeschlossen! Seite wird aktualisiert...';
+                }
+                setTimeout(function () { window.location.reload(); }, 600);
+            } else {
+                if (submitBtn) submitBtn.disabled = false;
+                if (alertEl) {
+                    alertEl.className = 'alert alert-danger py-2 small mt-2 ds-upload-alert';
+                    alertEl.textContent = 'Fehler beim Hochladen (HTTP ' + xhr.status + ').';
+                }
+            }
+        };
+        xhr.onerror = function () {
+            if (submitBtn) submitBtn.disabled = false;
+            if (alertEl) {
+                alertEl.className = 'alert alert-danger py-2 small mt-2 ds-upload-alert';
+                alertEl.textContent = 'Netzwerkfehler beim Hochladen.';
+            }
+        };
+        xhr.send(new FormData(form));
+    });
+}
+</script>
+{% endif %}

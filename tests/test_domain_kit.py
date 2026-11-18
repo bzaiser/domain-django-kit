@@ -225,6 +225,29 @@ class DomainKitTests(TestCase):
         )
         self.assertFalse(Category.objects.filter(name="Sonderkategorie").exists())
 
+    def test_document_real_file_upload_ajax_and_download(self):
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        with tempfile.TemporaryDirectory() as media_tmp:
+            with self.settings(MEDIA_ROOT=media_tmp):
+                self.client.force_login(self.admin)
+                f = SimpleUploadedFile("vertrag.pdf", b"%PDF-1.4 test content", content_type="application/pdf")
+                resp = self.client.post(
+                    "/domain/documents/",
+                    {"action": "create_doc", "title": "", "topic": "contract", "file": f},
+                    HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                )
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json()
+                self.assertEqual(data["status"], "ok")
+                self.assertEqual(data["title"], "vertrag.pdf")
+                self.assertEqual(data["file_name"], "vertrag.pdf")
+
+                dl = self.client.get(f"/domain/documents/{data['id']}/download/")
+                self.assertEqual(dl.status_code, 200)
+                self.assertEqual(b"".join(dl.streaming_content), b"%PDF-1.4 test content")
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

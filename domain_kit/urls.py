@@ -8,6 +8,7 @@ urlpatterns = [
     path("persons/", views.persons_page_view, name="persons"),
     path("assets/", views.assets_page_view, name="assets"),
     path("documents/", views.documents_page_view, name="documents"),
+    path("documents/<int:pk>/download/", views.download_document_view, name="document_download"),
     path("search/", views.global_search_view, name="search"),
     path("settings/", views.settings_page_view, name="settings"),
 ]

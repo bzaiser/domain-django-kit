@@ -269,6 +269,7 @@ class Document(models.Model):
         ("general", "Allgemein"),
     ]
     title = models.CharField(max_length=160)
+    file = models.FileField(upload_to="domain_kit/documents/%Y/%m/", blank=True, null=True)
     file_name = models.CharField(max_length=180, blank=True, default="")
     file_url = models.CharField(max_length=255, blank=True, default="")
     topic = models.CharField(max_length=24, choices=TOPIC_CHOICES, default="general", db_index=True)

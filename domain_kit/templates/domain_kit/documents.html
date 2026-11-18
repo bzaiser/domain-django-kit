@@ -48,6 +48,9 @@
                     <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>
                     <td>{{ d.document_date|default:"—" }}</td>
                     <td class="text-end">
+                        {% if d.file %}
+                        <a href="{% url 'domain_kit:document_download' d.id %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Herunterladen"><i class="bi bi-download"></i></a>
+                        {% endif %}
                         {% if can_write %}
                         <form method="post" class="d-inline">
                             {% csrf_token %}
@@ -67,39 +70,6 @@
 </div>
 
 {% if can_write %}
-<div class="modal fade" id="docCreateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="post" class="modal-content">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_doc">
-            <div class="modal-header"><h5 class="modal-title">Neues Dokument anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <div class="mb-2"><label class="form-label small">Titel</label><input type="text" name="title" class="form-control" required></div>
-                <div class="mb-2">
-                    <label class="form-label small">Thema</label>
-                    <select name="topic" class="form-select">
-                        <option value="general">Allgemein</option>
-                        <option value="person">Personen & Adressen</option>
-                        <option value="contract">Verträge</option>
-                        <option value="inventory">Inventar</option>
-                        <option value="account">Konten</option>
-                    </select>
-                </div>
-                <div class="row g-2 mb-2">
-                    <div class="col-6"><label class="form-label small">Betrag</label><input type="text" name="amount" class="form-control" value="0.00"></div>
-                    <div class="col-6">
-                        <label class="form-label small">Einheit</label>
-                        <select name="unit_id" class="form-select">
-                            <option value="">—</option>
-                            {% for u in units %}<option value="{{ u.id }}">{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-2"><label class="form-label small">Dateiname</label><input type="text" name="file_name" class="form-control"></div>
-            </div>
-            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
-        </form>
-    </div>
-</div>
+{% include "domain_kit/includes/doc_upload_modal.html" with modal_id="docCreateModal" modal_title="Neues Dokument hochladen" show_topic_select=True %}
 {% endif %}
 {% endblock %}

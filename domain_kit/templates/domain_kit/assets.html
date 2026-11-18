@@ -325,44 +325,6 @@
 </div>
 
 <!-- Create Asset Document Modal -->
-<div class="modal fade" id="assetDocCreateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="post" class="modal-content">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_doc">
-            <div class="modal-header"><h5 class="modal-title">Neues Asset-Dokument</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <div class="mb-2"><label class="form-label small">Titel</label><input type="text" name="title" class="form-control" required></div>
-                <div class="mb-2">
-                    <label class="form-label small">Bereich</label>
-                    <select name="topic" class="form-select">
-                        <option value="asset">Asset (Allgemein)</option>
-                        <option value="contract">Verträge</option>
-                        <option value="inventory">Inventar</option>
-                        <option value="account">Konten</option>
-                    </select>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label small">Verknüpftes Asset</label>
-                    <select name="asset_id" class="form-select">
-                        <option value="">—</option>
-                        {% for a in all_assets %}<option value="{{ a.id }}">{{ a.title }} ({{ a.get_asset_type_display }})</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="row g-2 mb-2">
-                    <div class="col-6"><label class="form-label small">Betrag</label><input type="text" name="amount" class="form-control" value="0.00"></div>
-                    <div class="col-6">
-                        <label class="form-label small">Einheit</label>
-                        <select name="unit_id" class="form-select">
-                            <option value="">—</option>
-                            {% for u in units %}<option value="{{ u.id }}">{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
-        </form>
-    </div>
-</div>
+{% include "domain_kit/includes/doc_upload_modal.html" with modal_id="assetDocCreateModal" modal_title="Asset-Dokument hochladen" show_topic_select=True asset_topics_only=True show_asset_select=True %}
 {% endif %}
 {% endblock %}

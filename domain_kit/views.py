@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.db.models import Q, Sum
-from django.http import HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import (
@@ -38,6 +38,47 @@ def _fk_or_none(model_cls, val):
         return model_cls.objects.filter(pk=int(val)).first() if val else None
     except (TypeError, ValueError):
         return None
+
+
+def _save_document_from_request(request, doc: Document, default_topic: str = "general", allowed_topics=None):
+    uploaded = request.FILES.get("file")
+    raw_title = (request.POST.get("title") or "").strip()
+    if not raw_title and uploaded:
+        raw_title = uploaded.name
+    doc.title = (raw_title or "Dokument")[:160]
+    tp = request.POST.get("topic", default_topic)
+    valid_topics = allowed_topics or ("person", "asset", "contract", "inventory", "account", "general")
+    doc.topic = tp if tp in valid_topics else default_topic
+    if uploaded:
+        doc.file = uploaded
+        doc.file_name = uploaded.name[:180]
+    elif request.POST.get("file_name"):
+        doc.file_name = request.POST.get("file_name", "").strip()[:180]
+    doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
+    doc.category = _fk_or_none(Category, request.POST.get("category_id"))
+    doc.status = _fk_or_none(Status, request.POST.get("status_id"))
+    doc.person = _fk_or_none(Person, request.POST.get("person_id"))
+    doc.asset = _fk_or_none(AssetItem, request.POST.get("asset_id"))
+    doc.amount = _to_dec(request.POST.get("amount"))
+    doc.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
+    doc.document_date = request.POST.get("document_date") or None
+    doc.tags = (request.POST.get("tags") or "").strip()[:160]
+    doc.notes = (request.POST.get("notes") or "").strip()
+    doc.save()
+    return doc
+
+
+def _doc_ajax_or_redirect(request, doc: Document, redirect_to: str, msg: str):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "status": "ok",
+            "id": doc.id,
+            "title": doc.title,
+            "file_name": doc.file_name,
+            "message": msg,
+        })
+    messages.success(request, msg)
+    return redirect(redirect_to)
 
 
 @login_required
@@ -102,21 +143,8 @@ def persons_page_view(request):
 
         if action in ("create_doc", "update_doc"):
             doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document(topic="person")
-            doc.title = (request.POST.get("title") or "Dokument").strip()[:160]
-            doc.topic = "person"
-            doc.file_name = (request.POST.get("file_name") or "").strip()[:180]
-            doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
-            doc.category = _fk_or_none(Category, request.POST.get("category_id"))
-            doc.status = _fk_or_none(Status, request.POST.get("status_id"))
-            doc.person = _fk_or_none(Person, request.POST.get("person_id"))
-            doc.amount = _to_dec(request.POST.get("amount"))
-            doc.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
-            doc.document_date = request.POST.get("document_date") or None
-            doc.tags = (request.POST.get("tags") or "").strip()[:160]
-            doc.notes = (request.POST.get("notes") or "").strip()
-            doc.save()
-            messages.success(request, "Dokument zum Thema Personen gespeichert.")
-            return redirect(f"{request.path}?tab=documents")
+            _save_document_from_request(request, doc, default_topic="person", allowed_topics=("person",))
+            return _doc_ajax_or_redirect(request, doc, f"{request.path}?tab=documents", "Dokument zum Thema Personen gespeichert.")
 
         if action == "delete_doc":
             Document.objects.filter(pk=request.POST.get("pk")).delete()
@@ -211,22 +239,8 @@ def assets_page_view(request):
 
         if action in ("create_doc", "update_doc"):
             doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document(topic="asset")
-            doc.title = (request.POST.get("title") or "Asset-Dokument").strip()[:160]
-            doc.topic = request.POST.get("topic") if request.POST.get("topic") in ("asset", "contract", "inventory", "account") else "asset"
-            doc.file_name = (request.POST.get("file_name") or "").strip()[:180]
-            doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
-            doc.category = _fk_or_none(Category, request.POST.get("category_id"))
-            doc.status = _fk_or_none(Status, request.POST.get("status_id"))
-            doc.asset = _fk_or_none(AssetItem, request.POST.get("asset_id"))
-            doc.person = _fk_or_none(Person, request.POST.get("person_id"))
-            doc.amount = _to_dec(request.POST.get("amount"))
-            doc.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
-            doc.document_date = request.POST.get("document_date") or None
-            doc.tags = (request.POST.get("tags") or "").strip()[:160]
-            doc.notes = (request.POST.get("notes") or "").strip()
-            doc.save()
-            messages.success(request, "Asset-Dokument gespeichert.")
-            return redirect(f"{request.path}?tab=documents")
+            _save_document_from_request(request, doc, default_topic="asset", allowed_topics=("asset", "contract", "inventory", "account"))
+            return _doc_ajax_or_redirect(request, doc, f"{request.path}?tab=documents", "Asset-Dokument gespeichert.")
 
         if action == "delete_doc":
             Document.objects.filter(pk=request.POST.get("pk")).delete()
@@ -304,23 +318,8 @@ def documents_page_view(request):
         action = request.POST.get("action", "")
         if action in ("create_doc", "update_doc"):
             doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document()
-            doc.title = (request.POST.get("title") or "Dokument").strip()[:160]
-            tp = request.POST.get("topic", "general")
-            doc.topic = tp if tp in ("person", "asset", "contract", "inventory", "account", "general") else "general"
-            doc.file_name = (request.POST.get("file_name") or "").strip()[:180]
-            doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
-            doc.category = _fk_or_none(Category, request.POST.get("category_id"))
-            doc.status = _fk_or_none(Status, request.POST.get("status_id"))
-            doc.person = _fk_or_none(Person, request.POST.get("person_id"))
-            doc.asset = _fk_or_none(AssetItem, request.POST.get("asset_id"))
-            doc.amount = _to_dec(request.POST.get("amount"))
-            doc.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
-            doc.document_date = request.POST.get("document_date") or None
-            doc.tags = (request.POST.get("tags") or "").strip()[:160]
-            doc.notes = (request.POST.get("notes") or "").strip()
-            doc.save()
-            messages.success(request, "Dokument gespeichert.")
-            return redirect("domain_kit:documents")
+            _save_document_from_request(request, doc, default_topic="general")
+            return _doc_ajax_or_redirect(request, doc, "domain_kit:documents", "Dokument gespeichert.")
         if action == "delete_doc":
             Document.objects.filter(pk=request.POST.get("pk")).delete()
             messages.success(request, "Dokument gelöscht.")
@@ -346,6 +345,16 @@ def documents_page_view(request):
             "assets": AssetItem.objects.all(),
         },
     )
+
+
+@login_required
+def download_document_view(request, pk):
+    if get_module_access(request.user, "documents") == "none":
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
+    doc = get_object_or_404(Document, pk=pk)
+    if not doc.file:
+        raise Http404("Keine Datei hinterlegt.")
+    return FileResponse(doc.file.open("rb"), as_attachment=True, filename=doc.file_name or doc.file.name.rsplit("/", 1)[-1])
 
 
 @login_required
