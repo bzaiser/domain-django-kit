@@ -282,6 +282,7 @@ class Document(models.Model):
     asset = models.ForeignKey(AssetItem, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
     tags = models.CharField(max_length=160, blank=True, default="")
     notes = models.TextField(blank=True, default="")
+    extracted_text = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

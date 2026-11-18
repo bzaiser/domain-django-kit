@@ -12,6 +12,9 @@ dependencies = [
     "Django>=4.2",
 ]
 
+[project.optional-dependencies]
+pdf = ["pypdf>=4.0"]
+
 [tool.setuptools.packages.find]
 include = ["domain_kit*"]
 

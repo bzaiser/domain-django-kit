@@ -250,6 +250,35 @@ class DomainKitTests(TestCase):
                 self.assertEqual(dl.status_code, 200)
                 self.assertEqual(b"".join(dl.streaming_content), b"%PDF-1.4 test content")
 
+    def test_docx_and_txt_fulltext_extraction_and_global_search(self):
+        import io
+        import tempfile
+        import zipfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr(
+                "word/document.xml",
+                '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>GeheimerWartungsCode99</w:t></w:r></w:p></w:body></w:document>',
+            )
+
+        with tempfile.TemporaryDirectory() as media_tmp:
+            with self.settings(MEDIA_ROOT=media_tmp):
+                self.client.force_login(self.admin)
+                docx_file = SimpleUploadedFile("protokoll.docx", buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                resp = self.client.post(
+                    "/domain/documents/",
+                    {"action": "create_doc", "title": "Wartungsprotokoll", "topic": "general", "file": docx_file},
+                    HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                )
+                self.assertEqual(resp.status_code, 200)
+                doc = Document.objects.get(pk=resp.json()["id"])
+                self.assertIn("GeheimerWartungsCode99", doc.extracted_text)
+
+                search_html = self.client.get("/domain/search/?q=GeheimerWartungsCode99").content.decode("utf-8")
+                self.assertIn("Wartungsprotokoll", search_html)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

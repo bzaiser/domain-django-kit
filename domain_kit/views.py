@@ -8,6 +8,7 @@ from django.db.models import Q, Sum
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from .extractors import extract_text_from_file
 from .models import (
     ACCESS_CHOICES,
     MODULE_CHOICES,
@@ -52,6 +53,7 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
     if uploaded:
         doc.file = uploaded
         doc.file_name = uploaded.name[:180]
+        doc.extracted_text = extract_text_from_file(uploaded, uploaded.name)
     elif request.POST.get("file_name"):
         doc.file_name = request.POST.get("file_name", "").strip()[:180]
     doc.file_url = (request.POST.get("file_url") or "").strip()[:255]
@@ -411,7 +413,11 @@ def global_search_view(request):
         if mod_map.get("documents", {}).get("can_read"):
             found_documents = list(
                 Document.objects.filter(
-                    Q(title__icontains=q) | Q(tags__icontains=q) | Q(file_name__icontains=q) | Q(notes__icontains=q)
+                    Q(title__icontains=q)
+                    | Q(tags__icontains=q)
+                    | Q(file_name__icontains=q)
+                    | Q(notes__icontains=q)
+                    | Q(extracted_text__icontains=q)
                 ).select_related("category", "status")[:50]
             )
         if mod_map.get("master_data", {}).get("can_read"):
