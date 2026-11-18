@@ -161,6 +161,13 @@ def assets_page_view(request):
     can_write = access == "write"
     mod_map = get_user_module_map(request.user)
     active_tab = request.GET.get("tab", "overview")
+    type_to_mod = {"contract": "contracts", "inventory": "inventory", "account": "accounts"}
+    allowed_asset_types = [t for t, mk in type_to_mod.items() if mod_map.get(mk, {}).get("can_read")]
+
+    if active_tab in type_to_mod and not mod_map.get(type_to_mod[active_tab], {}).get("can_read"):
+        return HttpResponseForbidden("Kein Zugriff auf diesen Asset-Bereich.")
+    if active_tab == "documents" and not mod_map.get("documents", {}).get("can_read"):
+        return HttpResponseForbidden("Kein Zugriff auf Asset-Dokumente.")
 
     if request.method == "POST":
         if not can_write:
@@ -172,6 +179,8 @@ def assets_page_view(request):
             atype = request.POST.get("asset_type", "inventory")
             if atype not in ("contract", "inventory", "account"):
                 atype = "inventory"
+            if not mod_map.get(type_to_mod[atype], {}).get("can_write"):
+                return HttpResponseForbidden("Schreibzugriff auf diesen Asset-Typ verweigert.")
             item.asset_type = atype
             item.title = (request.POST.get("title") or "Asset").strip()[:140]
             item.identifier = (request.POST.get("identifier") or "").strip()[:80]
@@ -193,7 +202,10 @@ def assets_page_view(request):
 
         if action == "delete_asset":
             ret_tab = request.POST.get("return_tab") or "overview"
-            AssetItem.objects.filter(pk=request.POST.get("pk")).delete()
+            target = get_object_or_404(AssetItem, pk=request.POST.get("pk"))
+            if not mod_map.get(type_to_mod.get(target.asset_type, "inventory"), {}).get("can_write"):
+                return HttpResponseForbidden("Löschzugriff auf diesen Asset-Typ verweigert.")
+            target.delete()
             messages.success(request, "Asset gelöscht.")
             return redirect(f"{request.path}?tab={ret_tab}")
 
@@ -221,13 +233,18 @@ def assets_page_view(request):
             messages.success(request, "Dokument gelöscht.")
             return redirect(f"{request.path}?tab=documents")
 
-    all_assets = AssetItem.objects.select_related("category", "status", "person", "address", "unit")
+    all_assets = AssetItem.objects.filter(asset_type__in=allowed_asset_types).select_related(
+        "category", "status", "person", "address", "unit"
+    )
     contracts = all_assets.filter(asset_type="contract")
     inventory = all_assets.filter(asset_type="inventory")
     accounts = all_assets.filter(asset_type="account")
-    asset_docs = Document.objects.filter(
-        Q(topic__in=["asset", "contract", "inventory", "account"]) | Q(asset__isnull=False)
-    ).select_related("category", "status", "asset", "person", "unit")
+    if mod_map.get("documents", {}).get("can_read"):
+        asset_docs = Document.objects.filter(
+            Q(topic__in=["asset", "contract", "inventory", "account"]) | Q(asset__isnull=False)
+        ).select_related("category", "status", "asset", "person", "unit")
+    else:
+        asset_docs = Document.objects.none()
 
     sum_contracts = contracts.aggregate(s=Sum("quantity"))["s"] or Decimal("0.00")
     sum_inventory = inventory.aggregate(s=Sum("quantity"))["s"] or Decimal("0.00")

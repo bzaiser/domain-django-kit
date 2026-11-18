@@ -104,6 +104,14 @@ class DomainKitTests(TestCase):
         forbidden = self.client.post("/domain/persons/", {"action": "create_person", "first_name": "Nope"})
         self.assertEqual(forbidden.status_code, 403)
 
+        # Guest with assets=read, inventory=read, contracts=none, accounts=none
+        AssetItem.objects.create(asset_type="account", title="Geheimes Konto", quantity="9999.00")
+        AssetItem.objects.create(asset_type="inventory", title="Öffentlicher Drucker", quantity="200.00")
+        ov_html = self.client.get("/domain/assets/?tab=overview").content.decode("utf-8")
+        self.assertIn("Öffentlicher Drucker", ov_html)
+        self.assertNotIn("Geheimes Konto", ov_html)
+        self.assertEqual(self.client.get("/domain/assets/?tab=account").status_code, 403)
+
         # Disable persons globally
         solo = DomainModuleSettings.get_solo()
         solo.enable_persons = False
