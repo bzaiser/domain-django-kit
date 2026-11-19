@@ -248,6 +248,15 @@
                         </select>
                     </div>
                     <div class="col-md-4">
+                        <label class="form-label small">Kategorie</label>
+                        <select name="category_id" class="form-select ds-asset-cat-sel">
+                            <option value="">—</option>
+                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label small">Status</label>
                         <select name="status_id" class="form-select">
                             <option value="">—</option>
@@ -275,22 +284,32 @@
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="assetDocCreateModal" modal_title="Asset-Dokument hochladen" show_topic_select=True asset_topics_only=True show_asset_select=True %}
 <script>
 (function () {
-    var typeSel = document.getElementById('assetCreateType');
-    var catSel = document.getElementById('assetCreateCategory');
-    if (!typeSel || !catSel) return;
-    function syncAssetCats() {
+    function syncPair(typeSel, catSel) {
+        if (!typeSel || !catSel) return;
         var t = typeSel.value;
-        var firstVisible = true;
+        var keepSel = true;
         catSel.querySelectorAll('option[data-purpose]').forEach(function (opt) {
             var match = opt.dataset.purpose === t;
             opt.hidden = !match;
             opt.disabled = !match;
-            if (!match && opt.selected) firstVisible = false;
+            if (!match && opt.selected) keepSel = false;
         });
-        if (!firstVisible) catSel.value = '';
+        if (!keepSel) catSel.value = '';
     }
-    typeSel.addEventListener('change', syncAssetCats);
-    syncAssetCats();
+    var typeSel = document.getElementById('assetCreateType');
+    var catSel = document.getElementById('assetCreateCategory');
+    if (typeSel && catSel) {
+        typeSel.addEventListener('change', function () { syncPair(typeSel, catSel); });
+        syncPair(typeSel, catSel);
+    }
+    document.querySelectorAll('.ds-asset-type-sel').forEach(function (tSel) {
+        var form = tSel.closest('form');
+        var cSel = form ? form.querySelector('.ds-asset-cat-sel') : null;
+        if (cSel) {
+            tSel.addEventListener('change', function () { syncPair(tSel, cSel); });
+            syncPair(tSel, cSel);
+        }
+    });
 })();
 </script>
 {% endif %}
@@ -323,7 +342,7 @@
                 <div class="row g-2">
                     <div class="col-md-4">
                         <label class="form-label small">Asset-Typ</label>
-                        <select name="asset_type" class="form-select">
+                        <select name="asset_type" class="form-select ds-asset-type-sel">
                             <option value="contract" {% if a.asset_type == 'contract' %}selected{% endif %}>Vertrag</option>
                             <option value="inventory" {% if a.asset_type == 'inventory' %}selected{% endif %}>Inventar</option>
                             <option value="account" {% if a.asset_type == 'account' %}selected{% endif %}>Konto</option>
@@ -337,6 +356,15 @@
                         <select name="unit_id" class="form-select">
                             <option value="">—</option>
                             {% for u in units %}<option value="{{ u.id }}" {% if a.unit_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Kategorie</label>
+                        <select name="category_id" class="form-select ds-asset-cat-sel">
+                            <option value="">—</option>
+                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
