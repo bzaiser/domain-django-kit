@@ -10,9 +10,9 @@
             <div class="modal-body">
                 <div class="border border-2 border-dashed rounded-3 p-3 text-center mb-3 bg-body-tertiary ds-dropzone" style="cursor: pointer;">
                     <i class="bi bi-file-earmark-arrow-up fs-2 text-primary d-block mb-1"></i>
-                    <div class="small fw-semibold">Datei hierher ziehen oder klicken zum Auswählen</div>
-                    <div class="small text-muted ds-file-info">PDF, Bild, Office-Datei oder beliebiges Dokument</div>
-                    <input type="file" name="file" class="form-control form-control-sm mt-2 ds-file-input">
+                    <div class="small fw-semibold">Dateien hierher ziehen oder klicken zum Auswählen (Mehrfachauswahl möglich)</div>
+                    <div class="small text-muted ds-file-info">PDF, Bild, Office-Datei oder beliebige Dokumente</div>
+                    <input type="file" name="file" multiple class="form-control form-control-sm mt-2 ds-file-input">
                 </div>
 
                 <div class="mb-2">
@@ -97,15 +97,72 @@
 <script>
 if (!window._dsUploadBound) {
     window._dsUploadBound = true;
+    function _updateDropzoneFiles(form, files) {
+        if (!form || !files || !files.length) return;
+        var info = form.querySelector('.ds-file-info');
+        var totalKb = 0;
+        var names = [];
+        for (var i = 0; i < files.length; i++) {
+            totalKb += files[i].size || 0;
+            names.push(files[i].name);
+        }
+        totalKb = Math.max(1, Math.round(totalKb / 1024));
+        if (info) {
+            info.textContent = files.length === 1
+                ? (names[0] + ' (' + totalKb + ' KB)')
+                : (files.length + ' Dateien ausgewählt (' + totalKb + ' KB): ' + names.slice(0, 3).join(', ') + (names.length > 3 ? ' …' : ''));
+        }
+        var titleEl = form.querySelector('.ds-doc-title');
+        if (titleEl && !titleEl.value.trim() && files.length === 1) {
+            titleEl.value = files[0].name;
+        }
+    }
     document.addEventListener('change', function (e) {
         if (!e.target.classList.contains('ds-file-input')) return;
-        var f = e.target.files && e.target.files[0];
-        var form = e.target.closest('form');
-        if (!f || !form) return;
-        var info = form.querySelector('.ds-file-info');
-        if (info) info.textContent = f.name + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB)';
-        var titleEl = form.querySelector('.ds-doc-title');
-        if (titleEl && !titleEl.value.trim()) titleEl.value = f.name;
+        _updateDropzoneFiles(e.target.closest('form'), e.target.files);
+    });
+    document.addEventListener('click', function (e) {
+        var dz = e.target.closest('.ds-dropzone');
+        if (!dz || e.target.classList.contains('ds-file-input')) return;
+        var inp = dz.querySelector('.ds-file-input');
+        if (inp) inp.click();
+    });
+    document.addEventListener('dragenter', function (e) {
+        var dz = e.target.closest('.ds-dropzone');
+        if (!dz) return;
+        e.preventDefault();
+        dz.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+    });
+    document.addEventListener('dragover', function (e) {
+        var dz = e.target.closest('.ds-dropzone');
+        if (!dz) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        dz.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+    });
+    document.addEventListener('dragleave', function (e) {
+        var dz = e.target.closest('.ds-dropzone');
+        if (!dz) return;
+        if (!dz.contains(e.relatedTarget)) {
+            dz.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+        }
+    });
+    document.addEventListener('drop', function (e) {
+        var dz = e.target.closest('.ds-dropzone');
+        if (!dz) return;
+        e.preventDefault();
+        dz.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+        var files = e.dataTransfer && e.dataTransfer.files;
+        var inp = dz.querySelector('.ds-file-input');
+        if (!files || !files.length || !inp) return;
+        try {
+            var dt = new DataTransfer();
+            for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
+            inp.files = dt.files;
+        } catch (err) {
+            inp.files = files;
+        }
+        _updateDropzoneFiles(dz.closest('form'), inp.files);
     });
     document.addEventListener('submit', function (e) {
         var form = e.target.closest('.ds-upload-form');

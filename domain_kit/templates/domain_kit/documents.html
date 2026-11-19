@@ -48,7 +48,19 @@
                     <td class="small">{% if d.person %}{{ d.person.full_name }}{% elif d.asset %}{{ d.asset.title }}{% else %}—{% endif %}</td>
                     <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>
                     <td>{{ d.document_date|default:"—" }}</td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                        {% if d.file or d.extracted_text %}
+                        <textarea id="docTxt-{{ d.id }}" class="d-none">{{ d.extracted_text }}</textarea>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill ds-doc-preview-btn"
+                                data-bs-toggle="modal" data-bs-target="#docPreviewModal"
+                                data-title="{{ d.title }}"
+                                data-filename="{{ d.file_name|default:d.title }}"
+                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
+                                data-text-target="docTxt-{{ d.id }}"
+                                title="Ansehen">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        {% endif %}
                         {% if d.file %}
                         <a href="{% url 'domain_kit:document_download' d.id %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Herunterladen"><i class="bi bi-download"></i></a>
                         {% endif %}
@@ -71,6 +83,7 @@
 </div>
 </div>
 
+{% include "domain_kit/includes/doc_preview_modal.html" %}
 {% if can_write %}
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="docCreateModal" modal_title="Neues Dokument hochladen" show_topic_select=True %}
 {% endif %}

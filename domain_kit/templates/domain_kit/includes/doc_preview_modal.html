@@ -1,0 +1,85 @@
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-eye me-1"></i> <span id="docPreviewTitle">Dokument-Vorschau</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div id="docPreviewBody" class="text-center"></div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <span class="small text-muted" id="docPreviewFilename"></span>
+                <div class="d-flex gap-2">
+                    <a id="docPreviewNewTab" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Im Tab öffnen
+                    </a>
+                    <a id="docPreviewDownload" href="#" class="btn btn-sm btn-primary rounded-pill px-3">
+                        <i class="bi bi-download me-1"></i> Herunterladen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+if (!window._dsDocPreviewBound) {
+    window._dsDocPreviewBound = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.ds-doc-preview-btn');
+        if (!btn) return;
+        var title = btn.dataset.title || 'Dokument';
+        var fname = btn.dataset.filename || '';
+        var viewUrl = btn.dataset.viewUrl || '';
+        var dlUrl = btn.dataset.downloadUrl || '';
+        var textId = btn.dataset.textTarget || '';
+        var extracted = textId && document.getElementById(textId) ? document.getElementById(textId).textContent : '';
+
+        document.getElementById('docPreviewTitle').textContent = title;
+        document.getElementById('docPreviewFilename').textContent = fname;
+        var tabBtn = document.getElementById('docPreviewNewTab');
+        var dlBtn = document.getElementById('docPreviewDownload');
+        tabBtn.classList.toggle('d-none', !viewUrl);
+        dlBtn.classList.toggle('d-none', !dlUrl);
+        if (viewUrl) tabBtn.href = viewUrl;
+        if (dlUrl) dlBtn.href = dlUrl;
+
+        var body = document.getElementById('docPreviewBody');
+        body.innerHTML = '';
+        var ext = (fname.split('.').pop() || '').toLowerCase();
+        if (viewUrl && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].indexOf(ext) !== -1) {
+            var img = document.createElement('img');
+            img.src = viewUrl;
+            img.alt = title;
+            img.className = 'img-fluid rounded shadow-sm';
+            img.style.maxHeight = '72vh';
+            body.appendChild(img);
+        } else if (viewUrl && ext === 'pdf') {
+            var ifr = document.createElement('iframe');
+            ifr.src = viewUrl;
+            ifr.className = 'w-100 rounded border';
+            ifr.style.height = '72vh';
+            body.appendChild(ifr);
+        } else if (extracted && extracted.trim()) {
+            var pre = document.createElement('pre');
+            pre.className = 'text-start small p-3 rounded border bg-body-tertiary mb-0';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.maxHeight = '65vh';
+            pre.style.overflow = 'auto';
+            pre.textContent = extracted;
+            body.appendChild(pre);
+        } else if (viewUrl) {
+            var fallbackIfr = document.createElement('iframe');
+            fallbackIfr.src = viewUrl;
+            fallbackIfr.className = 'w-100 rounded border';
+            fallbackIfr.style.height = '65vh';
+            body.appendChild(fallbackIfr);
+        } else {
+            var msg = document.createElement('div');
+            msg.className = 'text-muted py-4';
+            msg.textContent = 'Keine Vorschau verfügbar.';
+            body.appendChild(msg);
+        }
+    });
+}
+</script>

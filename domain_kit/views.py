@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 import json
+import mimetypes
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -41,8 +42,8 @@ def _fk_or_none(model_cls, val):
         return None
 
 
-def _save_document_from_request(request, doc: Document, default_topic: str = "general", allowed_topics=None):
-    uploaded = request.FILES.get("file")
+def _save_document_from_request(request, doc: Document, default_topic: str = "general", allowed_topics=None, uploaded_file=None):
+    uploaded = uploaded_file if uploaded_file is not None else request.FILES.get("file")
     raw_title = (request.POST.get("title") or "").strip()
     if not raw_title and uploaded:
         raw_title = uploaded.name
@@ -77,13 +78,33 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
     return doc
 
 
-def _doc_ajax_or_redirect(request, doc: Document, redirect_to: str, msg: str):
+def _create_documents_from_request(request, default_topic: str = "general", allowed_topics=None):
+    files = request.FILES.getlist("file")
+    if not files:
+        return [_save_document_from_request(request, Document(topic=default_topic), default_topic=default_topic, allowed_topics=allowed_topics)]
+    docs = []
+    raw_title = (request.POST.get("title") or "").strip()
+    for f in files:
+        doc = Document(topic=default_topic)
+        _save_document_from_request(request, doc, default_topic=default_topic, allowed_topics=allowed_topics, uploaded_file=f)
+        if len(files) > 1 and raw_title:
+            doc.title = f"{raw_title} — {f.name}"[:160]
+            doc.save(update_fields=["title"])
+        docs.append(doc)
+    return docs
+
+
+def _doc_ajax_or_redirect(request, docs, redirect_to: str, msg: str):
+    doc_list = docs if isinstance(docs, list) else [docs]
+    first = doc_list[0]
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({
             "status": "ok",
-            "id": doc.id,
-            "title": doc.title,
-            "file_name": doc.file_name,
+            "id": first.id,
+            "ids": [d.id for d in doc_list],
+            "count": len(doc_list),
+            "title": first.title,
+            "file_name": first.file_name,
             "message": msg,
         })
     messages.success(request, msg)
@@ -106,6 +127,8 @@ def persons_page_view(request):
 
         if action in ("create_person", "update_person"):
             person = get_object_or_404(Person, pk=request.POST.get("pk")) if action == "update_person" else Person()
+            person.salutation = (request.POST.get("salutation") or "").strip()[:30]
+            person.title_prefix = (request.POST.get("title_prefix") or "").strip()[:40]
             person.first_name = (request.POST.get("first_name") or "").strip()[:80] or "Neu"
             person.last_name = (request.POST.get("last_name") or "").strip()[:80]
             person.display_name = (request.POST.get("display_name") or "").strip()[:140]
@@ -114,6 +137,14 @@ def persons_page_view(request):
             person.mobile = (request.POST.get("mobile") or "").strip()[:60]
             person.company = (request.POST.get("company") or "").strip()[:120]
             person.department = (request.POST.get("department") or "").strip()[:100]
+            person.job_title = (request.POST.get("job_title") or "").strip()[:100]
+            person.birth_date = request.POST.get("birth_date") or None
+            person.website = (request.POST.get("website") or "").strip()[:200]
+            person.tax_id = (request.POST.get("tax_id") or "").strip()[:60]
+            if request.FILES.get("photo"):
+                person.photo = request.FILES["photo"]
+            elif request.POST.get("remove_photo") == "1":
+                person.photo = None
             person.category = _fk_or_none(Category, request.POST.get("category_id"))
             person.status = _fk_or_none(Status, request.POST.get("status_id"))
             person.responsible_person = _fk_or_none(Person, request.POST.get("responsible_id"))
@@ -135,9 +166,13 @@ def persons_page_view(request):
             addr.person = _fk_or_none(Person, request.POST.get("person_id"))
             addr.label = (request.POST.get("label") or "Hauptadresse").strip()[:80]
             addr.street = (request.POST.get("street") or "").strip()[:140]
+            addr.address_addition = (request.POST.get("address_addition") or "").strip()[:140]
             addr.postal_code = (request.POST.get("postal_code") or "").strip()[:24]
             addr.city = (request.POST.get("city") or "").strip()[:80]
+            addr.state = (request.POST.get("state") or "").strip()[:80]
             addr.country = (request.POST.get("country") or "Deutschland").strip()[:60]
+            addr.phone = (request.POST.get("phone") or "").strip()[:60]
+            addr.email = (request.POST.get("email") or "").strip()[:140]
             addr.category = _fk_or_none(Category, request.POST.get("category_id"))
             addr.is_primary = bool(request.POST.get("is_primary"))
             addr.notes = (request.POST.get("notes") or "").strip()[:200]
@@ -150,8 +185,11 @@ def persons_page_view(request):
             messages.success(request, "Adresse gelöscht.")
             return redirect(f"{request.path}?tab=addresses")
 
-        if action in ("create_doc", "update_doc"):
-            doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document(topic="person")
+        if action == "create_doc":
+            docs = _create_documents_from_request(request, default_topic="person", allowed_topics=("person",))
+            return _doc_ajax_or_redirect(request, docs, f"{request.path}?tab=documents", f"{len(docs)} Dokument(e) gespeichert.")
+        if action == "update_doc":
+            doc = get_object_or_404(Document, pk=request.POST.get("pk"))
             _save_document_from_request(request, doc, default_topic="person", allowed_topics=("person",))
             return _doc_ajax_or_redirect(request, doc, f"{request.path}?tab=documents", "Dokument zum Thema Personen gespeichert.")
 
@@ -246,8 +284,11 @@ def assets_page_view(request):
             messages.success(request, "Asset gelöscht.")
             return redirect(f"{request.path}?tab={ret_tab}")
 
-        if action in ("create_doc", "update_doc"):
-            doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document(topic="asset")
+        if action == "create_doc":
+            docs = _create_documents_from_request(request, default_topic="asset", allowed_topics=("asset", "contract", "inventory", "account"))
+            return _doc_ajax_or_redirect(request, docs, f"{request.path}?tab=documents", f"{len(docs)} Asset-Dokument(e) gespeichert.")
+        if action == "update_doc":
+            doc = get_object_or_404(Document, pk=request.POST.get("pk"))
             _save_document_from_request(request, doc, default_topic="asset", allowed_topics=("asset", "contract", "inventory", "account"))
             return _doc_ajax_or_redirect(request, doc, f"{request.path}?tab=documents", "Asset-Dokument gespeichert.")
 
@@ -325,8 +366,11 @@ def documents_page_view(request):
         if not can_write:
             return HttpResponseForbidden("Schreibzugriff auf Dokumente verweigert.")
         action = request.POST.get("action", "")
-        if action in ("create_doc", "update_doc"):
-            doc = get_object_or_404(Document, pk=request.POST.get("pk")) if action == "update_doc" else Document()
+        if action == "create_doc":
+            docs = _create_documents_from_request(request, default_topic="general")
+            return _doc_ajax_or_redirect(request, docs, "domain_kit:documents", f"{len(docs)} Dokument(e) gespeichert.")
+        if action == "update_doc":
+            doc = get_object_or_404(Document, pk=request.POST.get("pk"))
             _save_document_from_request(request, doc, default_topic="general")
             return _doc_ajax_or_redirect(request, doc, "domain_kit:documents", "Dokument gespeichert.")
         if action == "delete_doc":
@@ -354,6 +398,29 @@ def documents_page_view(request):
             "assets": AssetItem.objects.all(),
         },
     )
+
+
+@login_required
+def person_photo_view(request, pk):
+    if get_module_access(request.user, "persons") == "none":
+        return HttpResponseForbidden("Kein Zugriff auf Personen.")
+    person = get_object_or_404(Person, pk=pk)
+    if not person.photo:
+        raise Http404("Kein Bild hinterlegt.")
+    ctype, _ = mimetypes.guess_type(person.photo.name)
+    return FileResponse(person.photo.open("rb"), as_attachment=False, content_type=ctype or "application/octet-stream")
+
+
+@login_required
+def view_document_view(request, pk):
+    if get_module_access(request.user, "documents") == "none":
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
+    doc = get_object_or_404(Document, pk=pk)
+    if not doc.file:
+        raise Http404("Keine Datei hinterlegt.")
+    fname = doc.file_name or doc.file.name.rsplit("/", 1)[-1]
+    ctype, _ = mimetypes.guess_type(fname)
+    return FileResponse(doc.file.open("rb"), as_attachment=False, filename=fname, content_type=ctype or "application/octet-stream")
 
 
 @login_required

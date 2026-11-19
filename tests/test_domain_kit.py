@@ -279,6 +279,76 @@ class DomainKitTests(TestCase):
                 search_html = self.client.get("/domain/search/?q=GeheimerWartungsCode99").content.decode("utf-8")
                 self.assertIn("Wartungsprotokoll", search_html)
 
+    def test_multi_upload_inline_view_person_photo_and_address_edit(self):
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from domain_kit.models import Address
+        self.client.force_login(self.admin)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            with self.settings(MEDIA_ROOT=tmpdir):
+                f1 = SimpleUploadedFile("eins.txt", b"Erste Datei", content_type="text/plain")
+                f2 = SimpleUploadedFile("zwei.txt", b"Zweite Datei", content_type="text/plain")
+                resp = self.client.post(
+                    "/domain/documents/",
+                    {"action": "create_doc", "topic": "general", "file": [f1, f2]},
+                    HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                )
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.json()["count"], 2)
+                doc_id = resp.json()["ids"][0]
+                view_resp = self.client.get(f"/domain/documents/{doc_id}/view/")
+                self.assertEqual(view_resp.status_code, 200)
+                self.assertIn("inline", view_resp.get("Content-Disposition", ""))
+                view_resp.close()
+
+                photo = SimpleUploadedFile("avatar.png", b"\x89PNG\r\n\x1a\n", content_type="image/png")
+                self.client.post(
+                    "/domain/persons/",
+                    {
+                        "action": "create_person",
+                        "salutation": "Frau",
+                        "title_prefix": "Dr.",
+                        "first_name": "Erika",
+                        "last_name": "Muster",
+                        "job_title": "Leitung",
+                        "photo": photo,
+                    },
+                )
+                p = Person.objects.get(first_name="Erika")
+                self.assertEqual(p.title_prefix, "Dr.")
+                photo_resp = self.client.get(f"/domain/persons/{p.id}/photo/")
+                self.assertEqual(photo_resp.status_code, 200)
+                photo_resp.close()
+
+                self.client.post(
+                    "/domain/persons/",
+                    {
+                        "action": "create_address",
+                        "person_id": str(p.id),
+                        "label": "Büro",
+                        "street": "Hauptstr. 1",
+                        "city": "Berlin",
+                    },
+                )
+                addr = Address.objects.get(person=p)
+                self.client.post(
+                    "/domain/persons/",
+                    {
+                        "action": "update_address",
+                        "pk": str(addr.id),
+                        "person_id": str(p.id),
+                        "label": "Büro",
+                        "street": "Hauptstr. 1",
+                        "address_addition": "2. OG",
+                        "city": "Berlin",
+                        "state": "Berlin",
+                        "phone": "030-1234",
+                    },
+                )
+                addr.refresh_from_db()
+                self.assertEqual(addr.address_addition, "2. OG")
+                self.assertEqual(addr.phone, "030-1234")
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

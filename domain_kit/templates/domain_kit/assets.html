@@ -125,7 +125,22 @@
                     <td>{{ d.category.name|default:"—" }}</td>
                     <td>{% if d.status %}<span class="badge" style="background: var(--theme-state-{{ d.status.color_state }}, var(--app-primary));">{{ d.status.name }}</span>{% else %}—{% endif %}</td>
                     <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                        {% if d.file or d.extracted_text %}
+                        <textarea id="assetDocTxt-{{ d.id }}" class="d-none">{{ d.extracted_text }}</textarea>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill ds-doc-preview-btn"
+                                data-bs-toggle="modal" data-bs-target="#docPreviewModal"
+                                data-title="{{ d.title }}"
+                                data-filename="{{ d.file_name|default:d.title }}"
+                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
+                                data-text-target="assetDocTxt-{{ d.id }}"
+                                title="Ansehen">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        {% endif %}
+                        {% if d.file %}
+                        <a href="{% url 'domain_kit:document_download' d.id %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Herunterladen"><i class="bi bi-download"></i></a>
+                        {% endif %}
                         {% if can_write %}
                         <form method="post" class="d-inline">
                             {% csrf_token %}
@@ -329,4 +344,5 @@
 <!-- Create Asset Document Modal -->
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="assetDocCreateModal" modal_title="Asset-Dokument hochladen" show_topic_select=True asset_topics_only=True show_asset_select=True %}
 {% endif %}
+{% include "domain_kit/includes/doc_preview_modal.html" %}
 {% endblock %}
