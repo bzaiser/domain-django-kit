@@ -13,7 +13,7 @@
 </div>
 
 {% if q %}
-<div class="bento-kpi-grid mb-4">
+<div class="kpi-bento-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Treffer gesamt" value=total_hits unit="Treffer" icon="bi-search" size="sm" state=1 %}
     {% include "design_studio/components/kpi_card.html" with title="Personen" value=found_persons|length unit="Pers." icon="bi-people" size="sm" state=2 %}
     {% include "design_studio/components/kpi_card.html" with title="Assets" value=found_assets|length unit="Assets" icon="bi-boxes" size="sm" state=3 %}

@@ -53,7 +53,7 @@
 
 <div class="ds-tab-panel">
 {% if active_tab == 'persons' %}
-<div class="bento-kpi-grid mb-4">
+<div class="kpi-bento-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Personen gesamt" value=kpi_persons_total unit="Pers." icon="bi-people" size="sm" state=1 %}
     {% include "design_studio/components/kpi_card.html" with title="Verfügbare Rollen" value=kpi_roles_total unit="Rollen" icon="bi-person-badge" size="sm" state=2 %}
     {% include "design_studio/components/kpi_card.html" with title="Adressen" value=kpi_addresses_total unit="Orte" icon="bi-geo-alt" size="sm" state=3 %}
@@ -187,7 +187,7 @@
 </div>
 
 {% elif active_tab == 'addresses' %}
-<div class="bento-kpi-grid mb-4">
+<div class="kpi-bento-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Adressen gesamt" value=kpi_addresses_total unit="Orte" icon="bi-geo-alt" size="sm" state=3 %}
     {% include "design_studio/components/kpi_card.html" with title="Verknüpfte Personen" value=kpi_persons_total unit="Pers." icon="bi-people" size="sm" state=1 %}
 </div>
@@ -226,7 +226,7 @@
 </div>
 
 {% elif active_tab == 'documents' %}
-<div class="bento-kpi-grid mb-4">
+<div class="kpi-bento-grid mb-4">
     {% include "design_studio/components/kpi_card.html" with title="Dokumente (Personen)" value=kpi_docs_total unit="Dok." icon="bi-folder2-open" size="sm" state=4 %}
 </div>
 <div class="card shadow-sm">
