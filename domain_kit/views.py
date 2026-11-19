@@ -8,8 +8,10 @@ from django.contrib.auth.models import Group
 from django.db.models import Q, Sum
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from .extractors import extract_text_from_file
+from .preview import render_document_preview
 from .models import (
     ACCESS_CHOICES,
     MODULE_CHOICES,
@@ -412,6 +414,7 @@ def person_photo_view(request, pk):
 
 
 @login_required
+@xframe_options_sameorigin
 def view_document_view(request, pk):
     if get_module_access(request.user, "documents") == "none":
         return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
@@ -421,6 +424,22 @@ def view_document_view(request, pk):
     fname = doc.file_name or doc.file.name.rsplit("/", 1)[-1]
     ctype, _ = mimetypes.guess_type(fname)
     return FileResponse(doc.file.open("rb"), as_attachment=False, filename=fname, content_type=ctype or "application/octet-stream")
+
+
+@login_required
+@xframe_options_sameorigin
+def preview_document_view(request, pk):
+    if get_module_access(request.user, "documents") == "none":
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
+    doc = get_object_or_404(Document, pk=pk)
+    fname = doc.file_name or (doc.file.name.rsplit("/", 1)[-1] if doc.file else doc.title)
+    fobj = doc.file.open("rb") if doc.file else None
+    try:
+        res = render_document_preview(fobj, filename=fname, fallback_text=doc.extracted_text or "")
+    finally:
+        if fobj:
+            fobj.close()
+    return JsonResponse({"status": "ok", "title": doc.title, "filename": fname, **res})
 
 
 @login_required

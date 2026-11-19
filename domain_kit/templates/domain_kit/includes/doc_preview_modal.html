@@ -31,6 +31,7 @@ if (!window._dsDocPreviewBound) {
         var title = btn.dataset.title || 'Dokument';
         var fname = btn.dataset.filename || '';
         var viewUrl = btn.dataset.viewUrl || '';
+        var previewUrl = btn.dataset.previewUrl || '';
         var dlUrl = btn.dataset.downloadUrl || '';
         var textId = btn.dataset.textTarget || '';
         var extracted = textId && document.getElementById(textId) ? document.getElementById(textId).textContent : '';
@@ -60,6 +61,29 @@ if (!window._dsDocPreviewBound) {
             ifr.className = 'w-100 rounded border';
             ifr.style.height = '72vh';
             body.appendChild(ifr);
+        } else if (viewUrl && ['mp3', 'wav', 'ogg', 'm4a'].indexOf(ext) !== -1) {
+            var aud = document.createElement('audio');
+            aud.src = viewUrl;
+            aud.controls = true;
+            aud.className = 'w-100 my-3';
+            body.appendChild(aud);
+        } else if (viewUrl && ['mp4', 'webm', 'mov'].indexOf(ext) !== -1) {
+            var vid = document.createElement('video');
+            vid.src = viewUrl;
+            vid.controls = true;
+            vid.className = 'w-100 rounded';
+            vid.style.maxHeight = '72vh';
+            body.appendChild(vid);
+        } else if (previewUrl) {
+            body.innerHTML = '<div class="py-4 text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>Vorschau wird geladen...</div>';
+            fetch(previewUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    body.innerHTML = data.html || '<div class="text-muted py-4">Keine Vorschau verfügbar.</div>';
+                })
+                .catch(function () {
+                    body.innerHTML = '<div class="text-danger py-3 small">Fehler beim Laden der Vorschau.</div>';
+                });
         } else if (extracted && extracted.trim()) {
             var pre = document.createElement('pre');
             pre.className = 'text-start small p-3 rounded border bg-body-tertiary mb-0';
@@ -68,12 +92,6 @@ if (!window._dsDocPreviewBound) {
             pre.style.overflow = 'auto';
             pre.textContent = extracted;
             body.appendChild(pre);
-        } else if (viewUrl) {
-            var fallbackIfr = document.createElement('iframe');
-            fallbackIfr.src = viewUrl;
-            fallbackIfr.className = 'w-100 rounded border';
-            fallbackIfr.style.height = '65vh';
-            body.appendChild(fallbackIfr);
         } else {
             var msg = document.createElement('div');
             msg.className = 'text-muted py-4';

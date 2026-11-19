@@ -207,7 +207,7 @@
                                 data-bs-toggle="modal" data-bs-target="#docPreviewModal"
                                 data-title="{{ d.title }}"
                                 data-filename="{{ d.file_name|default:d.title }}"
-                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
+                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-preview-url="{% url 'domain_kit:document_preview' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
                                 data-text-target="personDocTxt-{{ d.id }}"
                                 title="Ansehen">
                             <i class="bi bi-eye"></i>

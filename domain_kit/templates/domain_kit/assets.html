@@ -132,7 +132,7 @@
                                 data-bs-toggle="modal" data-bs-target="#docPreviewModal"
                                 data-title="{{ d.title }}"
                                 data-filename="{{ d.file_name|default:d.title }}"
-                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
+                                {% if d.file %}data-view-url="{% url 'domain_kit:document_view' d.id %}" data-preview-url="{% url 'domain_kit:document_preview' d.id %}" data-download-url="{% url 'domain_kit:document_download' d.id %}"{% endif %}
                                 data-text-target="assetDocTxt-{{ d.id }}"
                                 title="Ansehen">
                             <i class="bi bi-eye"></i>
@@ -198,76 +198,6 @@
                         {% endif %}
                     </td>
                 </tr>
-
-                <!-- View Asset Modal -->
-                <div class="modal fade" id="assetViewModal-{{ a.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header"><h5 class="modal-title">{{ a.title }} ({{ a.get_asset_type_display }})</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                            <div class="modal-body small">
-                                <p><strong>Kennung / IBAN / Seriennr.:</strong> {{ a.identifier|default:"—" }} / {{ a.serial_number|default:"—" }}</p>
-                                <p><strong>Kategorie:</strong> {{ a.category.name|default:"—" }} | <strong>Status:</strong> {{ a.status.name|default:"—" }}</p>
-                                <p><strong>Wert / Menge:</strong> {{ a.quantity }} {{ a.unit.symbol|default:"" }}</p>
-                                <p><strong>Anbieter / Bank:</strong> {{ a.institution|default:"—" }} | <strong>Verantwortlich:</strong> {{ a.person.full_name|default:"—" }}</p>
-                                <p><strong>Notizen:</strong> {{ a.notes|default:"—" }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {% if can_write %}
-                <!-- Edit Asset Modal -->
-                <div class="modal fade" id="assetEditModal-{{ a.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <form method="post" class="modal-content">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="update_asset">
-                            <input type="hidden" name="pk" value="{{ a.id }}">
-                            <input type="hidden" name="return_tab" value="{{ active_tab }}">
-                            <div class="modal-header"><h5 class="modal-title">Asset bearbeiten: {{ a.title }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                            <div class="modal-body">
-                                <div class="row g-2">
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Asset-Typ</label>
-                                        <select name="asset_type" class="form-select">
-                                            <option value="contract" {% if a.asset_type == 'contract' %}selected{% endif %}>Vertrag</option>
-                                            <option value="inventory" {% if a.asset_type == 'inventory' %}selected{% endif %}>Inventar</option>
-                                            <option value="account" {% if a.asset_type == 'account' %}selected{% endif %}>Konto</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-8"><label class="form-label small">Bezeichnung</label><input type="text" name="title" class="form-control" value="{{ a.title }}" required></div>
-                                    <div class="col-md-4"><label class="form-label small">Kennung / IBAN / Vertragsnr.</label><input type="text" name="identifier" class="form-control" value="{{ a.identifier }}"></div>
-                                    <div class="col-md-4"><label class="form-label small">Wert / Menge / Saldo</label><input type="text" name="quantity" class="form-control" value="{{ a.quantity }}"></div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Maßeinheit</label>
-                                        <select name="unit_id" class="form-select">
-                                            <option value="">—</option>
-                                            {% for u in units %}<option value="{{ u.id }}" {% if a.unit_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Status</label>
-                                        <select name="status_id" class="form-select">
-                                            <option value="">—</option>
-                                            {% for s in statuses %}<option value="{{ s.id }}" {% if a.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Person</label>
-                                        <select name="person_id" class="form-select">
-                                            <option value="">—</option>
-                                            {% for p in persons %}<option value="{{ p.id }}" {% if a.person_id == p.id %}selected{% endif %}>{{ p.full_name }}</option>{% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4"><label class="form-label small">Bank / Anbieter</label><input type="text" name="institution" class="form-control" value="{{ a.institution }}"></div>
-                                    <div class="col-12"><label class="form-label small">Notizen</label><textarea name="notes" class="form-control" rows="2">{{ a.notes }}</textarea></div>
-                                </div>
-                            </div>
-                            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
-                        </form>
-                    </div>
-                </div>
-                {% endif %}
                 {% endif %}
                 {% empty %}
                 <tr><td colspan="7" class="text-center text-muted py-4">Noch keine Assets vorhanden.</td></tr>
@@ -365,4 +295,72 @@
 </script>
 {% endif %}
 {% include "domain_kit/includes/doc_preview_modal.html" %}
+{% for a in all_assets %}
+<div class="modal fade" id="assetViewModal-{{ a.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">{{ a.title }} ({{ a.get_asset_type_display }})</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body small">
+                <p><strong>Kennung / IBAN / Seriennr.:</strong> {{ a.identifier|default:"—" }} / {{ a.serial_number|default:"—" }}</p>
+                <p><strong>Kategorie:</strong> {{ a.category.name|default:"—" }} | <strong>Status:</strong> {{ a.status.name|default:"—" }}</p>
+                <p><strong>Wert / Menge:</strong> {{ a.quantity }} {{ a.unit.symbol|default:"" }}</p>
+                <p><strong>Anbieter / Bank:</strong> {{ a.institution|default:"—" }} | <strong>Verantwortlich:</strong> {{ a.person.full_name|default:"—" }}</p>
+                <p><strong>Notizen:</strong> {{ a.notes|default:"—" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% if can_write %}
+<div class="modal fade" id="assetEditModal-{{ a.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="post" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_asset">
+            <input type="hidden" name="pk" value="{{ a.id }}">
+            <input type="hidden" name="return_tab" value="{{ active_tab }}">
+            <div class="modal-header"><h5 class="modal-title">Asset bearbeiten: {{ a.title }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label small">Asset-Typ</label>
+                        <select name="asset_type" class="form-select">
+                            <option value="contract" {% if a.asset_type == 'contract' %}selected{% endif %}>Vertrag</option>
+                            <option value="inventory" {% if a.asset_type == 'inventory' %}selected{% endif %}>Inventar</option>
+                            <option value="account" {% if a.asset_type == 'account' %}selected{% endif %}>Konto</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8"><label class="form-label small">Bezeichnung</label><input type="text" name="title" class="form-control" value="{{ a.title }}" required></div>
+                    <div class="col-md-4"><label class="form-label small">Kennung / IBAN / Vertragsnr.</label><input type="text" name="identifier" class="form-control" value="{{ a.identifier }}"></div>
+                    <div class="col-md-4"><label class="form-label small">Wert / Menge / Saldo</label><input type="text" name="quantity" class="form-control" value="{{ a.quantity }}"></div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Maßeinheit</label>
+                        <select name="unit_id" class="form-select">
+                            <option value="">—</option>
+                            {% for u in units %}<option value="{{ u.id }}" {% if a.unit_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Status</label>
+                        <select name="status_id" class="form-select">
+                            <option value="">—</option>
+                            {% for s in statuses %}<option value="{{ s.id }}" {% if a.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Person</label>
+                        <select name="person_id" class="form-select">
+                            <option value="">—</option>
+                            {% for p in persons %}<option value="{{ p.id }}" {% if a.person_id == p.id %}selected{% endif %}>{{ p.full_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label small">Bank / Anbieter</label><input type="text" name="institution" class="form-control" value="{{ a.institution }}"></div>
+                    <div class="col-12"><label class="form-label small">Notizen</label><textarea name="notes" class="form-control" rows="2">{{ a.notes }}</textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary rounded-pill px-4">Speichern</button></div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %}

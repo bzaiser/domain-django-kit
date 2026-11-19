@@ -299,7 +299,19 @@ class DomainKitTests(TestCase):
                 view_resp = self.client.get(f"/domain/documents/{doc_id}/view/")
                 self.assertEqual(view_resp.status_code, 200)
                 self.assertIn("inline", view_resp.get("Content-Disposition", ""))
+                self.assertEqual(view_resp.get("X-Frame-Options"), "SAMEORIGIN")
                 view_resp.close()
+
+                csv_file = SimpleUploadedFile("tabelle.csv", b"Name;Wert\nTest;42\n", content_type="text/csv")
+                r_csv = self.client.post(
+                    "/domain/documents/",
+                    {"action": "create_doc", "topic": "general", "file": csv_file},
+                    HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                )
+                prev_resp = self.client.get(f"/domain/documents/{r_csv.json()['id']}/preview/")
+                self.assertEqual(prev_resp.status_code, 200)
+                self.assertIn("<table", prev_resp.json()["html"])
+                self.assertIn("42", prev_resp.json()["html"])
 
                 photo = SimpleUploadedFile("avatar.png", b"\x89PNG\r\n\x1a\n", content_type="image/png")
                 self.client.post(
