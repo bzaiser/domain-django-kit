@@ -284,8 +284,8 @@
             <div class="modal-header"><h5 class="modal-title">Person bearbeiten: {{ p.full_name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div class="row g-2">
-                    <div class="col-md-3"><label class="form-label small">Anrede</label><input type="text" name="salutation" class="form-control" value="{{ p.salutation }}" placeholder="Herr / Frau"></div>
-                    <div class="col-md-3"><label class="form-label small">Titel</label><input type="text" name="title_prefix" class="form-control" value="{{ p.title_prefix }}" placeholder="Dr."></div>
+                    <div class="col-md-3"><label class="form-label small">Anrede</label><input type="text" name="salutation" class="form-control" value="{{ p.salutation }}"></div>
+                    <div class="col-md-3"><label class="form-label small">Titel</label><input type="text" name="title_prefix" class="form-control" value="{{ p.title_prefix }}"></div>
                     <div class="col-md-3"><label class="form-label small">Vorname</label><input type="text" name="first_name" class="form-control" value="{{ p.first_name }}" required></div>
                     <div class="col-md-3"><label class="form-label small">Nachname</label><input type="text" name="last_name" class="form-control" value="{{ p.last_name }}"></div>
                     <div class="col-md-4"><label class="form-label small">Anzeigename</label><input type="text" name="display_name" class="form-control" value="{{ p.display_name }}"></div>
@@ -417,8 +417,8 @@
             <div class="modal-header"><h5 class="modal-title">Neue Person anlegen</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div class="row g-2">
-                    <div class="col-md-3"><label class="form-label small">Anrede</label><input type="text" name="salutation" class="form-control" placeholder="Herr / Frau"></div>
-                    <div class="col-md-3"><label class="form-label small">Titel</label><input type="text" name="title_prefix" class="form-control" placeholder="Dr."></div>
+                    <div class="col-md-3"><label class="form-label small">Anrede</label><input type="text" name="salutation" class="form-control"></div>
+                    <div class="col-md-3"><label class="form-label small">Titel</label><input type="text" name="title_prefix" class="form-control"></div>
                     <div class="col-md-3"><label class="form-label small">Vorname</label><input type="text" name="first_name" class="form-control" required></div>
                     <div class="col-md-3"><label class="form-label small">Nachname</label><input type="text" name="last_name" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label small">Anzeigename</label><input type="text" name="display_name" class="form-control"></div>

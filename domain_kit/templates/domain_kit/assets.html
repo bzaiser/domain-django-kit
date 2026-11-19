@@ -292,7 +292,7 @@
                 <div class="row g-2">
                     <div class="col-md-4">
                         <label class="form-label small">Asset-Typ</label>
-                        <select name="asset_type" class="form-select">
+                        <select name="asset_type" id="assetCreateType" class="form-select">
                             <option value="contract" {% if active_tab == 'contract' %}selected{% endif %}>Vertrag</option>
                             <option value="inventory" {% if active_tab == 'inventory' or active_tab == 'overview' %}selected{% endif %}>Inventar</option>
                             <option value="account" {% if active_tab == 'account' %}selected{% endif %}>Konto</option>
@@ -310,11 +310,11 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Kategorie</label>
-                        <select name="category_id" class="form-select">
+                        <select name="category_id" id="assetCreateCategory" class="form-select">
                             <option value="">—</option>
-                            {% for c in contract_categories %}<option value="{{ c.id }}">[Vertrag] {{ c.name }}</option>{% endfor %}
-                            {% for c in inventory_categories %}<option value="{{ c.id }}">[Inventar] {{ c.name }}</option>{% endfor %}
-                            {% for c in account_categories %}<option value="{{ c.id }}">[Konto] {{ c.name }}</option>{% endfor %}
+                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract">{{ c.name }}</option>{% endfor %}
+                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory">{{ c.name }}</option>{% endfor %}
+                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account">{{ c.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -343,6 +343,26 @@
 
 <!-- Create Asset Document Modal -->
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="assetDocCreateModal" modal_title="Asset-Dokument hochladen" show_topic_select=True asset_topics_only=True show_asset_select=True %}
+<script>
+(function () {
+    var typeSel = document.getElementById('assetCreateType');
+    var catSel = document.getElementById('assetCreateCategory');
+    if (!typeSel || !catSel) return;
+    function syncAssetCats() {
+        var t = typeSel.value;
+        var firstVisible = true;
+        catSel.querySelectorAll('option[data-purpose]').forEach(function (opt) {
+            var match = opt.dataset.purpose === t;
+            opt.hidden = !match;
+            opt.disabled = !match;
+            if (!match && opt.selected) firstVisible = false;
+        });
+        if (!firstVisible) catSel.value = '';
+    }
+    typeSel.addEventListener('change', syncAssetCats);
+    syncAssetCats();
+})();
+</script>
 {% endif %}
 {% include "domain_kit/includes/doc_preview_modal.html" %}
 {% endblock %}

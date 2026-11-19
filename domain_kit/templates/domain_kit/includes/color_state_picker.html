@@ -1,24 +1,48 @@
-<div class="d-flex flex-wrap align-items-center gap-1">
-    <select name="color_state" class="form-select form-select-sm" style="min-width: 150px; flex: 1;">
-        {% if theme_palette.states %}
-            {% for st in theme_palette.states %}
-            <option value="{{ st.index }}" {% if selected_state == st.index %}selected{% endif %} style="color: {{ st.hex }}; font-weight: 600;">{{ st.name }} ({{ st.hex }})</option>
-            {% endfor %}
-        {% else %}
-            <option value="1" {% if selected_state == 1 %}selected{% endif %}>1. OK / Stabil</option>
-            <option value="2" {% if selected_state == 2 %}selected{% endif %}>2. Positiv / Info</option>
-            <option value="3" {% if selected_state == 3 %}selected{% endif %}>3. Mittel / Achtung</option>
-            <option value="4" {% if selected_state == 4 %}selected{% endif %}>4. Warnung</option>
-            <option value="5" {% if selected_state == 5 %}selected{% endif %}>5. Schlecht / Fehler</option>
-            <option value="6" {% if selected_state == 6 %}selected{% endif %}>6. Gefahr / Kritisch</option>
-            <option value="7" {% if selected_state == 7 %}selected{% endif %}>7. Neutral / Inaktiv</option>
-            <option value="8" {% if selected_state == 8 %}selected{% endif %}>8. Fokus / Highlight</option>
-        {% endif %}
-    </select>
-    <div class="input-group input-group-sm" style="width: auto;" title="Optional: Eigene Farbe statt Design-Studio-Farbe verwenden">
+<div class="d-flex flex-wrap align-items-center gap-2 ds-color-picker-wrap">
+    <input type="hidden" name="color_state" class="ds-color-state-input" value="{{ selected_state|default:1 }}">
+    <div class="d-flex flex-wrap align-items-center gap-1">
+        {% for i in "12345678" %}
+        <button type="button"
+                class="ds-color-swatch-btn {% if not selected_custom and selected_state|default:1|stringformat:'s' == i %}active{% endif %}"
+                data-state="{{ i }}"
+                style="background: var(--theme-state-{{ i }}, var(--app-primary, #0d6efd));"
+                title="Farbe {{ i }}"></button>
+        {% endfor %}
+    </div>
+    <div class="input-group input-group-sm" style="width: auto;" title="Optional: Eigene Farbe statt Design-Studio-Farbe wählen">
         <span class="input-group-text">
-            <input type="checkbox" name="use_custom_color" class="form-check-input mt-0" {% if selected_custom %}checked{% endif %}>
+            <input type="checkbox" name="use_custom_color" class="form-check-input mt-0 ds-use-custom-color" {% if selected_custom %}checked{% endif %}>
         </span>
-        <input type="color" name="custom_color" class="form-control form-control-color" value="{{ selected_custom|default:'#0d6efd' }}" title="Eigene Farbe wählen">
+        <input type="color" name="custom_color" class="form-control form-control-color ds-custom-color-input" value="{{ selected_custom|default:'#0d6efd' }}" title="Eigene Farbe wählen">
     </div>
 </div>
+{% if not ds_color_picker_script_loaded %}
+<script>
+if (!window._dsColorPickerBound) {
+    window._dsColorPickerBound = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.ds-color-swatch-btn');
+        if (!btn) return;
+        var wrap = btn.closest('.ds-color-picker-wrap');
+        if (!wrap) return;
+        var inp = wrap.querySelector('.ds-color-state-input');
+        if (inp) inp.value = btn.dataset.state || '1';
+        wrap.querySelectorAll('.ds-color-swatch-btn').forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+        });
+        var chk = wrap.querySelector('.ds-use-custom-color');
+        if (chk) chk.checked = false;
+    });
+    document.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('ds-custom-color-input')) return;
+        var wrap = e.target.closest('.ds-color-picker-wrap');
+        if (!wrap) return;
+        var chk = wrap.querySelector('.ds-use-custom-color');
+        if (chk) chk.checked = true;
+        wrap.querySelectorAll('.ds-color-swatch-btn').forEach(function (b) {
+            b.classList.remove('active');
+        });
+    });
+}
+</script>
+{% endif %}
