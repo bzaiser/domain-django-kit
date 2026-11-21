@@ -136,6 +136,18 @@ def _resolve_object_url(obj, user) -> str:
                 return str(url)
         except Exception:
             pass
+    # Fallback: check if a parent FK target defines get_absolute_url()
+    for f in obj._meta.concrete_fields:
+        if isinstance(f, models.ForeignKey) and f.name not in ("user", "owner", "created_by", "updated_by"):
+            try:
+                rel_obj = getattr(obj, f.name, None)
+                if rel_obj is not None and hasattr(rel_obj, "get_absolute_url") and callable(rel_obj.get_absolute_url):
+                    parent_url = rel_obj.get_absolute_url()
+                    if parent_url:
+                        sep = "" if "#" in str(parent_url) else f"#item-{obj.pk}"
+                        return f"{parent_url}{sep}"
+            except Exception:
+                continue
     if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
         app_label = obj._meta.app_label
         model_name = obj._meta.model_name
