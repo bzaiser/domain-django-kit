@@ -171,19 +171,19 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
         },
     }
     for grp_name, rules in group_matrices.items():
-        grp, _ = Group.objects.get_or_create(name=grp_name)
+        grp, _ = Group.objects.using(db_alias).get_or_create(name=grp_name)
         for mod_key, level in rules.items():
-            DomainGroupPermission.objects.get_or_create(
+            DomainGroupPermission.objects.using(db_alias).get_or_create(
                 group=grp,
                 module_key=mod_key,
                 defaults={"access_level": level},
             )
 
     return {
-        "units": Unit.objects.count(),
-        "statuses": Status.objects.count(),
-        "categories": Category.objects.count(),
-        "roles": Role.objects.count(),
+        "units": Unit.objects.using(db_alias).count(),
+        "statuses": Status.objects.using(db_alias).count(),
+        "categories": Category.objects.using(db_alias).count(),
+        "roles": Role.objects.using(db_alias).count(),
         "groups": len(group_matrices),
     }
 
