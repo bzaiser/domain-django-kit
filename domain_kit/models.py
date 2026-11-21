@@ -97,6 +97,17 @@ class DomainModuleSettings(models.Model):
             self.enable_accounts = False
             self.enable_documents = False
             self.enable_global_search = False
+        elif "," in p or any(k in p for k in ("master_data", "persons", "documents", "assets", "global_search")):
+            mods = [x.strip() for x in p.split(",")]
+            self.enable_master_data = "master_data" in mods
+            self.enable_persons = "persons" in mods
+            self.enable_addresses = "persons" in mods or "addresses" in mods
+            self.enable_documents = "documents" in mods
+            self.enable_assets = "assets" in mods
+            self.enable_inventory = "assets" in mods or "inventory" in mods
+            self.enable_contracts = "assets" in mods or "contracts" in mods
+            self.enable_accounts = "assets" in mods or "accounts" in mods
+            self.enable_global_search = "global_search" in mods
         else:  # "all"
             self.enable_master_data = True
             self.enable_persons = True
