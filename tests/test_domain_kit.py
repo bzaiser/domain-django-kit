@@ -361,6 +361,34 @@ class DomainKitTests(TestCase):
                 self.assertEqual(addr.address_addition, "2. OG")
                 self.assertEqual(addr.phone, "030-1234")
 
+    def test_modular_profiles_and_view_redirects(self):
+        self.client.force_login(self.admin)
+        solo = DomainModuleSettings.get_solo()
+
+        # Apply profile 'documents'
+        solo.apply_profile("documents")
+        self.assertTrue(solo.enable_documents)
+        self.assertTrue(solo.enable_global_search)
+        self.assertFalse(solo.enable_persons)
+        self.assertFalse(solo.enable_assets)
+
+        # Accessing disabled persons view redirects
+        resp = self.client.get("/domain/persons/")
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/domain/settings/", resp.headers.get("Location", ""))
+
+        # Apply profile via POST in settings view
+        post_resp = self.client.post("/domain/settings/", {"action": "save_modules", "apply_profile": "persons"})
+        self.assertEqual(post_resp.status_code, 302)
+        solo.refresh_from_db()
+        self.assertTrue(solo.enable_persons)
+        self.assertFalse(solo.enable_assets)
+        self.assertFalse(solo.enable_documents)
+
+        # Persons is now accessible (200), assets redirects (302)
+        self.assertEqual(self.client.get("/domain/persons/").status_code, 200)
+        self.assertEqual(self.client.get("/domain/assets/").status_code, 302)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

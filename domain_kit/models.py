@@ -55,6 +55,61 @@ class DomainModuleSettings(models.Model):
         field_name = f"enable_{module_key}"
         return bool(getattr(self, field_name, True))
 
+    def apply_profile(self, profile: str):
+        p = str(profile or "all").lower().strip()
+        if p == "persons":
+            self.enable_persons = True
+            self.enable_addresses = True
+            self.enable_global_search = True
+            self.enable_assets = False
+            self.enable_contracts = False
+            self.enable_inventory = False
+            self.enable_accounts = False
+            self.enable_documents = False
+            self.enable_master_data = False
+        elif p == "documents":
+            self.enable_documents = True
+            self.enable_global_search = True
+            self.enable_persons = False
+            self.enable_addresses = False
+            self.enable_assets = False
+            self.enable_contracts = False
+            self.enable_inventory = False
+            self.enable_accounts = False
+            self.enable_master_data = False
+        elif p == "assets":
+            self.enable_assets = True
+            self.enable_inventory = True
+            self.enable_contracts = True
+            self.enable_global_search = True
+            self.enable_persons = False
+            self.enable_addresses = False
+            self.enable_documents = False
+            self.enable_accounts = False
+            self.enable_master_data = False
+        elif p == "master_data":
+            self.enable_master_data = True
+            self.enable_persons = False
+            self.enable_addresses = False
+            self.enable_assets = False
+            self.enable_contracts = False
+            self.enable_inventory = False
+            self.enable_accounts = False
+            self.enable_documents = False
+            self.enable_global_search = False
+        else:  # "all"
+            self.enable_master_data = True
+            self.enable_persons = True
+            self.enable_addresses = True
+            self.enable_assets = True
+            self.enable_contracts = True
+            self.enable_inventory = True
+            self.enable_accounts = True
+            self.enable_documents = True
+            self.enable_global_search = True
+        self.save()
+        return self
+
 
 class DomainGroupPermission(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="domain_kit_permissions")

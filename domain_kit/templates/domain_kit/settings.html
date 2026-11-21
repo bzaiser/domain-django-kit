@@ -104,7 +104,15 @@
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-end mt-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-2 border-top">
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                    <span class="small text-muted fw-semibold me-1"><i class="bi bi-magic me-1"></i> Schnell-Profil:</span>
+                    <button type="submit" name="apply_profile" value="all" class="btn btn-xs btn-sm btn-outline-secondary rounded-pill px-2">Vollständig</button>
+                    <button type="submit" name="apply_profile" value="persons" class="btn btn-xs btn-sm btn-outline-secondary rounded-pill px-2">Nur Personen</button>
+                    <button type="submit" name="apply_profile" value="documents" class="btn btn-xs btn-sm btn-outline-secondary rounded-pill px-2">Nur Dokumente</button>
+                    <button type="submit" name="apply_profile" value="assets" class="btn btn-xs btn-sm btn-outline-secondary rounded-pill px-2">Nur Assets</button>
+                    <button type="submit" name="apply_profile" value="master_data" class="btn btn-xs btn-sm btn-outline-secondary rounded-pill px-2">Nur Stammdaten</button>
+                </div>
                 <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
                     <i class="bi bi-save me-1"></i> Schaltzentrale speichern
                 </button>

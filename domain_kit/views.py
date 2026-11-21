@@ -115,6 +115,10 @@ def _doc_ajax_or_redirect(request, docs, redirect_to: str, msg: str):
 
 @login_required
 def persons_page_view(request):
+    solo = DomainModuleSettings.get_solo()
+    if not solo.is_module_enabled("persons"):
+        messages.warning(request, "Das Modul Personen ist in den Einstellungen deaktiviert.")
+        return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
     access = get_module_access(request.user, "persons")
     if access == "none":
         return HttpResponseForbidden("Kein Zugriff auf Modul Personen.")
@@ -232,6 +236,10 @@ def persons_page_view(request):
 
 @login_required
 def assets_page_view(request):
+    solo = DomainModuleSettings.get_solo()
+    if not solo.is_module_enabled("assets"):
+        messages.warning(request, "Das Modul Assets ist in den Einstellungen deaktiviert.")
+        return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
     access = get_module_access(request.user, "assets")
     if access == "none":
         return HttpResponseForbidden("Kein Zugriff auf Modul Assets.")
@@ -358,6 +366,10 @@ def assets_page_view(request):
 
 @login_required
 def documents_page_view(request):
+    solo = DomainModuleSettings.get_solo()
+    if not solo.is_module_enabled("documents"):
+        messages.warning(request, "Das Modul Dokumente ist in den Einstellungen deaktiviert.")
+        return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
     access = get_module_access(request.user, "documents")
     if access == "none":
         return HttpResponseForbidden("Kein Zugriff auf Modul Dokumente.")
@@ -454,6 +466,10 @@ def download_document_view(request, pk):
 
 @login_required
 def global_search_view(request):
+    solo = DomainModuleSettings.get_solo()
+    if not solo.is_module_enabled("global_search"):
+        messages.warning(request, "Die Globale Suche ist in den Einstellungen deaktiviert.")
+        return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
     access = get_module_access(request.user, "global_search")
     if access == "none":
         return HttpResponseForbidden("Kein Zugriff auf Globale Suche.")
@@ -550,6 +566,19 @@ def settings_page_view(request):
         action = request.POST.get("action", "")
 
         if action == "save_modules" and is_admin:
+            if request.POST.get("apply_profile"):
+                p = request.POST.get("apply_profile")
+                solo.apply_profile(p)
+                profile_names = {
+                    "all": "Vollständig",
+                    "persons": "Nur Personen & Kontakte",
+                    "documents": "Nur Dokumente",
+                    "assets": "Nur Assets & Inventar",
+                    "master_data": "Nur Stammdaten",
+                }
+                messages.success(request, f"Profil '{profile_names.get(p, p)}' erfolgreich angewendet.")
+                return redirect(f"{request.path}?tab=modules")
+
             for mod_key, _ in MODULE_CHOICES:
                 setattr(solo, f"enable_{mod_key}", bool(request.POST.get(f"enable_{mod_key}")))
             solo.save()
