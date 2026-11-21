@@ -57,8 +57,8 @@ def get_user_module_map(user) -> dict:
     return result
 
 
-def seed_domain_defaults() -> dict:
-    DomainModuleSettings.get_solo()
+def seed_domain_defaults(db_alias: str = "default") -> dict:
+    DomainModuleSettings.objects.using(db_alias).get_or_create(pk=1)
 
     # 1. Units
     default_units = [
@@ -73,7 +73,7 @@ def seed_domain_defaults() -> dict:
         ("Pauschal", "psch.", "other", 0, 90),
     ]
     for name, sym, dim, dec, pos in default_units:
-        Unit.objects.get_or_create(symbol=sym, defaults={"name": name, "dimension": dim, "decimals": dec, "position": pos})
+        Unit.objects.using(db_alias).get_or_create(symbol=sym, defaults={"name": name, "dimension": dim, "decimals": dec, "position": pos})
 
     # 2. Status (ordered by position, NOT alphabetically)
     default_statuses = [
@@ -89,7 +89,7 @@ def seed_domain_defaults() -> dict:
         ("Archiviert", "global", 1, "bi-archive", 100, True),
     ]
     for name, scope, color, icon, pos, is_final in default_statuses:
-        Status.objects.get_or_create(
+        Status.objects.using(db_alias).get_or_create(
             name=name,
             scope=scope,
             defaults={"color_state": color, "icon": icon, "position": pos, "is_final": is_final},
@@ -121,7 +121,7 @@ def seed_domain_defaults() -> dict:
     ]
     cat_map = {}
     for name, purpose, code, val, color, icon, pos in default_categories:
-        cat, _ = Category.objects.get_or_create(
+        cat, _ = Category.objects.using(db_alias).get_or_create(
             name=name,
             purpose=purpose,
             defaults={"code": code, "value": val, "color_state": color, "icon": icon, "position": pos},
@@ -137,7 +137,7 @@ def seed_domain_defaults() -> dict:
         ("Eigentümer", None, 5, 50, "Asset- oder Kontoeigentümer"),
     ]
     for name, cat, color, pos, desc in default_roles:
-        Role.objects.get_or_create(
+        Role.objects.using(db_alias).get_or_create(
             name=name,
             defaults={"category": cat, "color_state": color, "position": pos, "description": desc},
         )
