@@ -139,7 +139,12 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
     for name, cat, color, pos, desc in default_roles:
         Role.objects.using(db_alias).get_or_create(
             name=name,
-            defaults={"category": cat, "color_state": color, "position": pos, "description": desc},
+            defaults={
+                "category_id": cat.pk if cat else None,
+                "color_state": color,
+                "position": pos,
+                "description": desc,
+            },
         )
 
     # 5. Default Permission Groups (Gast, Mitarbeiter, Personalverantwortlicher)
@@ -174,7 +179,7 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
         grp, _ = Group.objects.using(db_alias).get_or_create(name=grp_name)
         for mod_key, level in rules.items():
             DomainGroupPermission.objects.using(db_alias).get_or_create(
-                group=grp,
+                group_id=grp.pk,
                 module_key=mod_key,
                 defaults={"access_level": level},
             )
