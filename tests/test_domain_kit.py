@@ -68,6 +68,7 @@ urlpatterns = [
 class DomainKitTests(TestCase):
     def setUp(self):
         seed_domain_defaults()
+        DomainModuleSettings.get_solo().apply_profile("all")
         self.admin = User.objects.create_user(username="hr_admin", password="pw", is_staff=True)
         self.guest = User.objects.create_user(username="guest_u", password="pw")
         self.guest.groups.add(Group.objects.get(name="Gast"))
@@ -388,6 +389,10 @@ class DomainKitTests(TestCase):
         # Persons is now accessible (200), assets redirects (302)
         self.assertEqual(self.client.get("/domain/persons/").status_code, 200)
         self.assertEqual(self.client.get("/domain/assets/").status_code, 302)
+
+
+    def test_no_missing_migrations(self):
+        call_command("makemigrations", "domain_kit", "--check", "--dry-run", verbosity=0)
 
 
 if __name__ == "__main__":
