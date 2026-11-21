@@ -1,28 +1,29 @@
 # domain-django-kit
 
-Universelles Stammdaten-, Personen-, Asset-, Dokumenten- & Such-Paket für Django + `django-design-studio` inkl. Modul-Schaltzentrale & Gruppen-Berechtigungs-Matrix (`Gast`, `Mitarbeiter`, `Personalverantwortlicher`, `Administrator`).
+Universelles, modulares Stammdaten-, Personen-, Asset-, Dokumenten- & Such-Paket für Django + `django-design-studio` inkl. Modul-Schaltzentrale & Gruppen-Berechtigungs-Matrix (`Gast`, `Mitarbeiter`, `Personalverantwortlicher`, `Administrator`).
 
-## Features
-- **Stammdaten**:
-  - **Kategorien (`Category`)**: Mit Zweck (`purpose`), Farbe (`color_state` 1..8), Wert/Code und Position — überall nach Zweck gefiltert einsetzbar.
-  - **Maßeinheiten (`Unit`)**: `Stk.`, `€`, `m`, `Std.`, `l`, `m²`, `kg`, `%`, `psch.` usw.
-  - **Status (`Status`)**: Erledigt, Begonnen, Fertig, Fehler, Verspätet, Zu groß, Zu klein usw. mit Farbe & fester **Sortierposition** (nicht alphabetisch).
-  - **Rollen (`Role`)**: Mitarbeiter, Gast, Personalverantwortlicher, Dienstleister, Eigentümer usw.
-- **Komplette Seiten (Tabs, KPI-Karten, Charts, Tabellen & Anzeigen/Ändern/Neu/Löschen-Modals)**:
-  - `/domain/persons/` — Thema Personen, Rollen, Adressen & Dokumente zum Thema
-  - `/domain/assets/` — Thema Assets (Übersicht, Dokumente zum Thema, Verträge, Inventar, Konten + Chart.js)
-  - `/domain/documents/` — Dokumenten-Zentrale
-  - `/domain/search/` — Globale Suche über alle aktiven & freigegebenen Module
-  - `/domain/settings/` — Modul-Schaltzentrale, Gruppen-Rechte-Matrix (`Aus` / `Lesen` / `Schreiben`), Standarddaten-Loader, Daten-Purge & Stammdaten-Pflege
+## Modulare Teilbereiche (einzeln schaltbar)
+Über `DomainModuleSettings` (in `/domain/settings/` oder direkt per Checkbox im `ops_kit` Updates-Tab) können Teilbereiche einzeln ein- und ausgeschaltet werden — deaktivierte Module verschwinden automatisch aus der Navigation (`design_studio/menu.py`):
+- **`master_data` (Stammdaten-Basis)**: `Category` (mit `purpose`, `color_state` 1..8), `Unit`, `Status` (feste Sortierposition), `Role` → `/domain/settings/`
+- **`persons` (Personen & Adressen)**: Kontakte, Kunden, Lieferanten, Adressbuch & Fotos → `/domain/persons/`
+- **`documents` (Dokumente)**: Multi-Upload, Inline-Vorschau, `.docx`/`.txt`-Volltextextraktion → `/domain/documents/`
+- **`assets` (Assets & Inventar)**: Übersicht, Verträge, Inventar, Konten + Chart.js → `/domain/assets/`
+- **`global_search` (Globale Suche)**: Suchmaske über alle aktiven & freigegebenen Module → `/domain/search/`
 
-## Installation
-```bash
-pip install --no-user --upgrade --no-cache-dir git+https://github.com/bzaiser/domain-django-kit.git@main
-```
+Schnell-Profile per `DomainModuleSettings.get_solo().apply_profile(...)`: `"all"`, `"master_data"`, `"persons"`, `"documents"`, `"assets"` oder kommaseparierte Modul-Liste (z. B. `"master_data,persons"`).
 
+## Einbindung
 ```python
+# settings.py
 INSTALLED_APPS = [..., "design_studio", "domain_kit"]
 TEMPLATES[0]["OPTIONS"]["context_processors"] += ["domain_kit.context_processors.domain_context"]
+# Mit ops_kit.runtime (erlaubt sicheres Deaktivieren ohne Crash):
+from ops_kit.runtime import filter_runtime_context_processors
+TEMPLATES[0]["OPTIONS"]["context_processors"] = filter_runtime_context_processors(
+    TEMPLATES[0]["OPTIONS"]["context_processors"], INSTALLED_APPS
+)
+
 # urls.py
-path("domain/", include("domain_kit.urls")),
+from ops_kit.runtime import optional_kit_path
+urlpatterns += optional_kit_path("domain_kit", "domain/", "domain_kit.urls")
 ```
