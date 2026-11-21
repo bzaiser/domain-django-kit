@@ -37,14 +37,14 @@ PURPOSE_CHOICES = [
 
 class DomainModuleSettings(models.Model):
     enable_master_data = models.BooleanField(default=True)
-    enable_persons = models.BooleanField(default=True)
-    enable_addresses = models.BooleanField(default=True)
-    enable_assets = models.BooleanField(default=True)
-    enable_contracts = models.BooleanField(default=True)
-    enable_inventory = models.BooleanField(default=True)
-    enable_accounts = models.BooleanField(default=True)
-    enable_documents = models.BooleanField(default=True)
-    enable_global_search = models.BooleanField(default=True)
+    enable_persons = models.BooleanField(default=False)
+    enable_addresses = models.BooleanField(default=False)
+    enable_assets = models.BooleanField(default=False)
+    enable_contracts = models.BooleanField(default=False)
+    enable_inventory = models.BooleanField(default=False)
+    enable_accounts = models.BooleanField(default=False)
+    enable_documents = models.BooleanField(default=False)
+    enable_global_search = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     @classmethod
