@@ -466,86 +466,46 @@ def download_document_view(request, pk):
 
 @login_required
 def global_search_view(request):
+    from .search_engine import run_global_search
+
     solo = DomainModuleSettings.get_solo()
     if not solo.is_module_enabled("global_search"):
         messages.warning(request, "Die Globale Suche ist in den Einstellungen deaktiviert.")
         return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
-    access = get_module_access(request.user, "global_search")
-    if access == "none":
-        return HttpResponseForbidden("Kein Zugriff auf Globale Suche.")
+
+    # Only deny if an explicit group rule blocks global_search (default: allow logged-in users with per-user data isolation)
+    if not (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)):
+        group_ids = list(request.user.groups.values_list("id", flat=True))
+        if group_ids:
+            explicit_perms = list(
+                DomainGroupPermission.objects.filter(
+                    group_id__in=group_ids, module_key="global_search"
+                ).values_list("access_level", flat=True)
+            )
+            if explicit_perms and all(lvl == "none" for lvl in explicit_perms):
+                return HttpResponseForbidden("Kein Zugriff auf Globale Suche.")
+
     q = (request.GET.get("q") or "").strip()
-    mod_map = get_user_module_map(request.user)
+    scope_filter = (request.GET.get("scope") or "").strip()
+    res = run_global_search(request, q, scope_filter=scope_filter)
+    legacy = res["legacy"]
 
-    found_persons = []
-    found_addresses = []
-    found_assets = []
-    found_documents = []
-    found_categories = []
-
-    if q:
-        if mod_map.get("persons", {}).get("can_read"):
-            found_persons = list(
-                Person.objects.filter(
-                    Q(first_name__icontains=q)
-                    | Q(last_name__icontains=q)
-                    | Q(display_name__icontains=q)
-                    | Q(email__icontains=q)
-                    | Q(company__icontains=q)
-                    | Q(notes__icontains=q)
-                ).select_related("category", "status")[:50]
-            )
-        if mod_map.get("addresses", {}).get("can_read"):
-            found_addresses = list(
-                Address.objects.filter(
-                    Q(street__icontains=q) | Q(city__icontains=q) | Q(postal_code__icontains=q) | Q(label__icontains=q)
-                ).select_related("person")[:50]
-            )
-        if mod_map.get("assets", {}).get("can_read"):
-            allowed_types = []
-            if mod_map.get("contracts", {}).get("can_read"):
-                allowed_types.append("contract")
-            if mod_map.get("inventory", {}).get("can_read"):
-                allowed_types.append("inventory")
-            if mod_map.get("accounts", {}).get("can_read"):
-                allowed_types.append("account")
-            found_assets = list(
-                AssetItem.objects.filter(asset_type__in=allowed_types)
-                .filter(
-                    Q(title__icontains=q)
-                    | Q(identifier__icontains=q)
-                    | Q(institution__icontains=q)
-                    | Q(serial_number__icontains=q)
-                    | Q(notes__icontains=q)
-                )
-                .select_related("category", "status", "unit")[:50]
-            )
-        if mod_map.get("documents", {}).get("can_read"):
-            found_documents = list(
-                Document.objects.filter(
-                    Q(title__icontains=q)
-                    | Q(tags__icontains=q)
-                    | Q(file_name__icontains=q)
-                    | Q(notes__icontains=q)
-                    | Q(extracted_text__icontains=q)
-                ).select_related("category", "status")[:50]
-            )
-        if mod_map.get("master_data", {}).get("can_read"):
-            found_categories = list(
-                Category.objects.filter(Q(name__icontains=q) | Q(code__icontains=q) | Q(purpose__icontains=q))[:50]
-            )
-
-    total_hits = len(found_persons) + len(found_addresses) + len(found_assets) + len(found_documents) + len(found_categories)
     return render(
         request,
         "domain_kit/search.html",
         {
             "q": q,
-            "total_hits": total_hits,
-            "found_persons": found_persons,
-            "found_addresses": found_addresses,
-            "found_assets": found_assets,
-            "found_documents": found_documents,
-            "found_categories": found_categories,
+            "scope_filter": scope_filter,
+            "total_hits": res["total_hits"],
+            "visible_hits": res["visible_hits"],
+            "search_scopes": res["scopes"],
+            "search_all_groups": res["all_groups"],
+            "search_groups": res["groups"],
+            "found_persons": legacy["found_persons"],
+            "found_addresses": legacy["found_addresses"],
+            "found_assets": legacy["found_assets"],
+            "found_documents": legacy["found_documents"],
+            "found_categories": legacy["found_categories"],
         },
     )
 

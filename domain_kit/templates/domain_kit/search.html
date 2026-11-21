@@ -7,63 +7,63 @@
 <div class="mb-4">
     <h3 class="fw-bold mb-1"><i class="bi bi-search me-2"></i>Globale Suche</h3>
     <form method="get" class="d-flex gap-2 mt-2">
-        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Personen, Adressen, Verträge, Inventar, Konten, Dokumente, Kategorien durchsuchen..." autofocus>
-        <button type="submit" class="btn btn-primary rounded-pill px-4">Suchen</button>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Gesamte App, Kalender, Dokumente, Personen, Stammdaten durchsuchen..." autofocus>
+        {% if scope_filter %}<input type="hidden" name="scope" value="{{ scope_filter }}">{% endif %}
+        <button type="submit" class="btn btn-primary rounded-pill px-4 text-nowrap"><i class="bi bi-search me-1"></i>Suchen</button>
     </form>
+    {% if search_scopes %}
+    <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+        <span class="small text-muted me-1">Aktive Suchbereiche:</span>
+        {% for sc in search_scopes %}
+        <span class="badge bg-secondary bg-opacity-10 text-body border rounded-pill fw-normal"><i class="bi {{ sc.icon }} me-1"></i>{{ sc.label }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 
 {% if q %}
-<div class="kpi-bento-grid mb-4">
+<div class="kpi-bento-grid mb-3">
     {% include "design_studio/components/kpi_card.html" with title="Treffer gesamt" value=total_hits unit="Treffer" icon="bi-search" size="sm" state=1 %}
-    {% include "design_studio/components/kpi_card.html" with title="Personen" value=found_persons|length unit="Pers." icon="bi-people" size="sm" state=2 %}
-    {% include "design_studio/components/kpi_card.html" with title="Assets" value=found_assets|length unit="Assets" icon="bi-boxes" size="sm" state=3 %}
-    {% include "design_studio/components/kpi_card.html" with title="Dokumente" value=found_documents|length unit="Dok." icon="bi-folder2-open" size="sm" state=4 %}
+    {% include "design_studio/components/kpi_card.html" with title="Bereiche mit Treffern" value=search_all_groups|length unit="Bereiche" icon="bi-layers" size="sm" state=2 %}
 </div>
 
-{% if found_persons %}
+{% if search_all_groups %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="?q={{ q|urlencode }}" class="btn btn-sm rounded-pill px-3 {% if not scope_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">Alle ({{ total_hits }})</a>
+    {% for grp in search_all_groups %}
+    <a href="?q={{ q|urlencode }}&scope={{ grp.key|urlencode }}" class="btn btn-sm rounded-pill px-3 {% if scope_filter == grp.key %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi {{ grp.icon }} me-1"></i>{{ grp.label }} ({{ grp.hits|length }})</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for grp in search_groups %}
 <div class="card shadow-sm mb-3">
-    <div class="card-header"><i class="bi bi-people me-1"></i> Gefundene Personen ({{ found_persons|length }})</div>
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi {{ grp.icon }} me-2"></i>{{ grp.label }}</span>
+        <span class="badge bg-primary rounded-pill">{{ grp.hits|length }}</span>
+    </div>
     <ul class="list-group list-group-flush">
-        {% for p in found_persons %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><strong>{{ p.full_name }}</strong> {% if p.company %}({{ p.company }}){% endif %} · {{ p.email }}</span>
-            <a href="{% url 'domain_kit:persons' %}?tab=persons" class="btn btn-sm btn-outline-primary rounded-pill">Zu Personen</a>
+        {% for hit in grp.hits %}
+        <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    {% if hit.badge %}<span class="badge bg-secondary bg-opacity-25 text-body rounded-pill">{{ hit.badge }}</span>{% endif %}
+                    <strong>{{ hit.title }}</strong>
+                    {% if hit.subtitle %}<span class="small text-muted">· {{ hit.subtitle }}</span>{% endif %}
+                </div>
+                {% if hit.snippet %}<div class="small text-muted mt-1">{{ hit.snippet }}</div>{% endif %}
+            </div>
+            {% if hit.url %}
+            <a href="{{ hit.url }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 text-nowrap">{{ hit.url_label|default:"Öffnen" }}</a>
+            {% endif %}
         </li>
         {% endfor %}
     </ul>
 </div>
-{% endif %}
-
-{% if found_assets %}
-<div class="card shadow-sm mb-3">
-    <div class="card-header"><i class="bi bi-boxes me-1"></i> Gefundene Assets ({{ found_assets|length }})</div>
-    <ul class="list-group list-group-flush">
-        {% for a in found_assets %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><span class="badge bg-secondary me-2">{{ a.get_asset_type_display }}</span><strong>{{ a.title }}</strong> ({{ a.quantity }} {{ a.unit.symbol|default:"" }})</span>
-            <a href="{% url 'domain_kit:assets' %}?tab={{ a.asset_type }}" class="btn btn-sm btn-outline-primary rounded-pill">Zum Asset</a>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
-
-{% if found_documents %}
-<div class="card shadow-sm mb-3">
-    <div class="card-header"><i class="bi bi-folder2-open me-1"></i> Gefundene Dokumente ({{ found_documents|length }})</div>
-    <ul class="list-group list-group-flush">
-        {% for d in found_documents %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><strong>{{ d.title }}</strong> ({{ d.get_topic_display }})</span>
-            <a href="{% url 'domain_kit:documents' %}" class="btn btn-sm btn-outline-primary rounded-pill">Zu Dokumenten</a>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
+{% endfor %}
 
 {% if total_hits == 0 %}
-<div class="alert alert-info">Keine Treffer für „{{ q }}“ in den für dich freigegebenen Modulen.</div>
+<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>Keine Treffer für „{{ q }}“ in den aktiven Bereichen gefunden.</div>
 {% endif %}
 {% endif %}
 {% endblock %}

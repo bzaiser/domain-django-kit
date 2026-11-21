@@ -8,7 +8,7 @@ Universelles, modulares Stammdaten-, Personen-, Asset-, Dokumenten- & Such-Paket
 - **`persons` (Personen & Adressen)**: Kontakte, Kunden, Lieferanten, Adressbuch & Fotos → `/domain/persons/`
 - **`documents` (Dokumente)**: Multi-Upload, Inline-Vorschau, `.docx`/`.txt`-Volltextextraktion → `/domain/documents/`
 - **`assets` (Assets & Inventar)**: Übersicht, Verträge, Inventar, Konten + Chart.js → `/domain/assets/`
-- **`global_search` (Globale Suche)**: Suchmaske über alle aktiven & freigegebenen Module → `/domain/search/`
+- **`global_search` (Globale Suche)**: App-weite Suche über alle aktiven `domain_kit`-Module (inkl. Stammdaten & Adressen), `cal_kit`, `notify_kit`, optionale App-Provider (`DOMAIN_SEARCH_PROVIDERS`) sowie **Zero-Config Auto-Discovery** aller Host-App-Models (mit automatischer User-Isolation) → `/domain/search/`
 
 Schnell-Profile per `DomainModuleSettings.get_solo().apply_profile(...)`: `"all"`, `"master_data"`, `"persons"`, `"documents"`, `"assets"` oder kommaseparierte Modul-Liste (z. B. `"master_data,persons"`).
 

@@ -391,6 +391,58 @@ class DomainKitTests(TestCase):
         self.assertEqual(self.client.get("/domain/assets/").status_code, 302)
 
 
+    def test_global_search_renders_master_data_addresses_custom_provider_and_scope_filter(self):
+        from domain_kit.models import Address
+        from domain_kit.search_engine import _extract_snippet
+
+        self.client.force_login(self.admin)
+        p = Person.objects.create(first_name="Clara", last_name="Test")
+        Address.objects.create(person=p, label="Privat", street="Lindenallee 42", postal_code="70173", city="Stuttgart")
+
+        # 1. Master data category & address MUST render in HTML (previously dropped!)
+        r_cat = self.client.get("/domain/search/?q=Mitarbeiter")
+        self.assertEqual(r_cat.status_code, 200)
+        html_cat = r_cat.content.decode("utf-8")
+        self.assertIn("Stammdaten", html_cat)
+        self.assertIn("Mitarbeiter", html_cat)
+
+        r_addr = self.client.get("/domain/search/?q=Lindenallee")
+        self.assertEqual(r_addr.status_code, 200)
+        self.assertIn("Lindenallee 42", r_addr.content.decode("utf-8"))
+
+        # 2. Custom provider via DOMAIN_SEARCH_PROVIDERS & scope filter
+        def fake_app_provider(req, q):
+            hits = []
+            if q and "hafer" in q.lower():
+                hits.append({
+                    "title": "Haferflocken mit Beeren",
+                    "subtitle": "380 kcal",
+                    "snippet": "Frühstück-Vorlage",
+                    "badge": "Mahlzeit",
+                    "url": "/meals/",
+                    "url_label": "Zu Mahlzeiten",
+                })
+            return [{"key": "app_meals", "label": "Mahlzeiten", "icon": "bi-egg-fried", "hits": hits}]
+
+        from unittest.mock import patch
+        with self.settings(DOMAIN_SEARCH_PROVIDERS=["tests.test_domain_kit.fake_provider"]), \
+             patch("domain_kit.search_engine.import_string", return_value=fake_app_provider):
+            r_prov = self.client.get("/domain/search/?q=Hafer&scope=app_meals")
+            self.assertEqual(r_prov.status_code, 200)
+            body = r_prov.content.decode("utf-8")
+            self.assertIn("Haferflocken mit Beeren", body)
+            self.assertIn("Mahlzeiten", body)
+
+        # 3. Authenticated user in unrelated group (not explicitly blocked) can still access Global Search
+        other_grp = Group.objects.create(name="Benutzer")
+        plain_user = User.objects.create_user(username="plain_u", password="pw")
+        plain_user.groups.add(other_grp)
+        self.client.force_login(plain_user)
+        r_plain = self.client.get("/domain/search/?q=Test")
+        self.assertEqual(r_plain.status_code, 200)
+
+        self.assertIn("Treffer", _extract_snippet("Das ist ein langer Treffer Text zum Prüfen", "Treffer"))
+
     def test_no_missing_migrations(self):
         call_command("makemigrations", "domain_kit", "--check", "--dry-run", verbosity=0)
 
