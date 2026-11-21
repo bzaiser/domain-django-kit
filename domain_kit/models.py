@@ -30,6 +30,7 @@ PURPOSE_CHOICES = [
     ("inventory", "Inventar"),
     ("account", "Konto"),
     ("document", "Dokument"),
+    ("list", "Listen & Vorlagen"),
     ("general", "Allgemein"),
 ]
 
