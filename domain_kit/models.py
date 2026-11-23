@@ -250,6 +250,7 @@ class Person(models.Model):
     job_title = models.CharField(max_length=100, blank=True, default="")
     birth_date = models.DateField(null=True, blank=True)
     website = models.URLField(blank=True, default="")
+    is_public = models.BooleanField(default=False)
     tax_id = models.CharField(max_length=60, blank=True, default="")
     photo = models.FileField(upload_to="domain_kit/persons/%Y/%m/", blank=True, null=True)
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="persons")
@@ -361,6 +362,7 @@ class Document(models.Model):
     tags = models.CharField(max_length=160, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     extracted_text = models.TextField(blank=True, default="")
+    is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
