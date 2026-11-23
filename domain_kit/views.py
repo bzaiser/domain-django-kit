@@ -139,7 +139,10 @@ def persons_page_view(request):
             person.title_prefix = (request.POST.get("title_prefix") or "").strip()[:40]
             person.first_name = (request.POST.get("first_name") or "").strip()[:80] or "Neu"
             person.last_name = (request.POST.get("last_name") or "").strip()[:80]
-            person.display_name = (request.POST.get("display_name") or "").strip()[:140]
+            display_name = (request.POST.get("display_name") or "").strip()[:140]
+            if not display_name and action == "create_person":
+                display_name = f"{person.first_name} {person.last_name}".strip()[:140]
+            person.display_name = display_name
             person.email = (request.POST.get("email") or "").strip()[:140]
             person.phone = (request.POST.get("phone") or "").strip()[:60]
             person.mobile = (request.POST.get("mobile") or "").strip()[:60]

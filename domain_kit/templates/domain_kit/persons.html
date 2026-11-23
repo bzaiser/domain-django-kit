@@ -425,9 +425,9 @@
                 <div class="row g-2">
                     <div class="col-md-3"><label class="form-label small">Anrede</label><input type="text" name="salutation" class="form-control"></div>
                     <div class="col-md-3"><label class="form-label small">Titel</label><input type="text" name="title_prefix" class="form-control"></div>
-                    <div class="col-md-3"><label class="form-label small">Vorname</label><input type="text" name="first_name" class="form-control" required></div>
-                    <div class="col-md-3"><label class="form-label small">Nachname</label><input type="text" name="last_name" class="form-control"></div>
-                    <div class="col-md-4"><label class="form-label small">Anzeigename</label><input type="text" name="display_name" class="form-control"></div>
+                    <div class="col-md-3"><label class="form-label small">Vorname</label><input type="text" name="first_name" id="newPersonFirstName" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label small">Nachname</label><input type="text" name="last_name" id="newPersonLastName" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label small">Anzeigename</label><input type="text" name="display_name" id="newPersonDisplayName" class="form-control" placeholder="Wird aus Vor- und Nachname gefüllt"></div>
                     <div class="col-md-4"><label class="form-label small">Geburtsdatum</label><input type="date" name="birth_date" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label small">Profilbild</label><input type="file" name="photo" accept="image/*" class="form-control form-control-sm"></div>
                     <div class="col-md-4"><label class="form-label small">E-Mail</label><input type="email" name="email" class="form-control"></div>
@@ -528,6 +528,22 @@
 {% include "domain_kit/includes/doc_preview_modal.html" %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const firstInput = document.getElementById("newPersonFirstName");
+    const lastInput = document.getElementById("newPersonLastName");
+    const displayInput = document.getElementById("newPersonDisplayName");
+    if (firstInput && lastInput && displayInput) {
+        let manualEdited = false;
+        displayInput.addEventListener("input", function () {
+            manualEdited = displayInput.value.trim().length > 0;
+        });
+        const syncDisplayName = function () {
+            if (manualEdited) return;
+            displayInput.value = [firstInput.value.trim(), lastInput.value.trim()].filter(Boolean).join(" ");
+        };
+        firstInput.addEventListener("input", syncDisplayName);
+        lastInput.addEventListener("input", syncDisplayName);
+    }
+
     const editId = new URLSearchParams(window.location.search).get("edit");
     if (!editId) return;
     const modalEl = document.getElementById("personEditModal-" + editId);
