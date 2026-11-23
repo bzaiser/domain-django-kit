@@ -27,7 +27,7 @@
 <ul class="nav nav-tabs ds-tabs">
     <li class="nav-item">
         <a class="nav-link {% if active_tab == 'overview' %}active{% endif %}" href="?tab=overview">
-            <i class="bi bi-grid-1x2 me-1"></i> 1. Thema Assets ({{ all_assets.count }})
+            <i class="bi bi-grid-1x2 me-1"></i> 1. Gesamtübersicht ({{ all_assets.count }})
         </a>
     </li>
     {% if mod_map.documents.can_read %}
@@ -47,7 +47,7 @@
     {% if mod_map.inventory.can_read %}
     <li class="nav-item">
         <a class="nav-link {% if active_tab == 'inventory' %}active{% endif %}" href="?tab=inventory">
-            <i class="bi bi-box-seam me-1"></i> 4. Inventar ({{ inventory.count }})
+            <i class="bi bi-box-seam me-1"></i> 4. Inventar & Räume ({{ inventory.count }})
         </a>
     </li>
     {% endif %}
@@ -217,7 +217,7 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create_asset">
             <input type="hidden" name="return_tab" value="{{ active_tab }}">
-            <div class="modal-header"><h5 class="modal-title">Neues Asset anlegen (Vertrag / Inventar / Konto)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Neues Asset anlegen (Vertrag / Inventar / Raum / Konto)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div class="row g-2">
                     <div class="col-md-4">
