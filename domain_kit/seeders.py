@@ -63,16 +63,16 @@ def seed_domain_demo(count: int = 5):
 
     room_cat, _ = Category.objects.get_or_create(name="Veranstaltungsraum", purpose="inventory")
     AssetItem.objects.get_or_create(
-        name="Schulungsraum 1",
+        title="Schulungsraum 1",
         asset_type="resource",
-        defaults={"category": room_cat, "location": "EG Links", "notes": "Beamer, 20 Plätze"},
+        defaults={"category": room_cat, "notes": "EG Links · Beamer, 20 Plätze"},
     )
     return created
 
 
 def reset_domain_demo():
     Person.objects.filter(email__endswith="@example.com").delete()
-    AssetItem.objects.filter(name="Schulungsraum 1", asset_type="resource").delete()
+    AssetItem.objects.filter(title="Schulungsraum 1", asset_type="resource").delete()
 
 
 register_seeder("domain_kit", seed_domain_demo, order=20, reset_fn=reset_domain_demo)
