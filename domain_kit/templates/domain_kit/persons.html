@@ -514,4 +514,14 @@
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="personDocCreateModal" modal_title="Dokument (Thema Personen) hochladen" show_person_select=True %}
 {% endif %}
 {% include "domain_kit/includes/doc_preview_modal.html" %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const editId = new URLSearchParams(window.location.search).get("edit");
+    if (!editId) return;
+    const modalEl = document.getElementById("personEditModal-" + editId);
+    if (modalEl && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+});
+</script>
 {% endblock %}
