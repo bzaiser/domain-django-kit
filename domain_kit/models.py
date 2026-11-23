@@ -271,6 +271,7 @@ class Person(models.Model):
         related_name="domain_kit_persons",
     )
     notes = models.TextField(blank=True, default="")
+    bio = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

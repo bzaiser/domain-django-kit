@@ -171,6 +171,7 @@ def persons_page_view(request):
             if "user_id" in request.POST:
                 person.user = _fk_or_none(get_user_model(), request.POST.get("user_id"))
             person.notes = (request.POST.get("notes") or "").strip()
+            person.bio = (request.POST.get("bio") or "").strip()
             person.save()
             role_ids = [int(r) for r in request.POST.getlist("role_ids") if str(r).isdigit()]
             if role_ids or "role_ids_present" in request.POST:
