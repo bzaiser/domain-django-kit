@@ -225,6 +225,7 @@
                         <select name="asset_type" id="assetCreateType" class="form-select">
                             <option value="contract" {% if active_tab == 'contract' %}selected{% endif %}>Vertrag</option>
                             <option value="inventory" {% if active_tab == 'inventory' or active_tab == 'overview' %}selected{% endif %}>Inventar</option>
+                            <option value="resource">Raum / Ressource</option>
                             <option value="account" {% if active_tab == 'account' %}selected{% endif %}>Konto</option>
                         </select>
                     </div>
@@ -345,6 +346,7 @@
                         <select name="asset_type" class="form-select ds-asset-type-sel">
                             <option value="contract" {% if a.asset_type == 'contract' %}selected{% endif %}>Vertrag</option>
                             <option value="inventory" {% if a.asset_type == 'inventory' %}selected{% endif %}>Inventar</option>
+                            <option value="resource" {% if a.asset_type == 'resource' %}selected{% endif %}>Raum / Ressource</option>
                             <option value="account" {% if a.asset_type == 'account' %}selected{% endif %}>Konto</option>
                         </select>
                     </div>

@@ -246,7 +246,7 @@ def assets_page_view(request):
     can_write = access == "write"
     mod_map = get_user_module_map(request.user)
     active_tab = request.GET.get("tab", "overview")
-    type_to_mod = {"contract": "contracts", "inventory": "inventory", "account": "accounts"}
+    type_to_mod = {"contract": "contracts", "inventory": "inventory", "resource": "inventory", "account": "accounts"}
     allowed_asset_types = [t for t, mk in type_to_mod.items() if mod_map.get(mk, {}).get("can_read")]
 
     if active_tab in type_to_mod and not mod_map.get(type_to_mod[active_tab], {}).get("can_read"):
@@ -262,7 +262,7 @@ def assets_page_view(request):
         if action in ("create_asset", "update_asset"):
             item = get_object_or_404(AssetItem, pk=request.POST.get("pk")) if action == "update_asset" else AssetItem()
             atype = request.POST.get("asset_type", "inventory")
-            if atype not in ("contract", "inventory", "account"):
+            if atype not in ("contract", "inventory", "resource", "account"):
                 atype = "inventory"
             if not mod_map.get(type_to_mod[atype], {}).get("can_write"):
                 return HttpResponseForbidden("Schreibzugriff auf diesen Asset-Typ verweigert.")
@@ -311,7 +311,7 @@ def assets_page_view(request):
         "category", "status", "person", "address", "unit"
     )
     contracts = all_assets.filter(asset_type="contract")
-    inventory = all_assets.filter(asset_type="inventory")
+    inventory = all_assets.filter(asset_type__in=["inventory", "resource"])
     accounts = all_assets.filter(asset_type="account")
     if mod_map.get("documents", {}).get("can_read"):
         asset_docs = Document.objects.filter(

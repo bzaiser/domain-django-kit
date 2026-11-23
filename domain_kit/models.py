@@ -312,6 +312,7 @@ class AssetItem(models.Model):
     ASSET_TYPES = [
         ("contract", "Vertrag"),
         ("inventory", "Inventar"),
+        ("resource", "Raum / Ressource"),
         ("account", "Konto"),
     ]
     asset_type = models.CharField(max_length=24, choices=ASSET_TYPES, default="inventory", db_index=True)

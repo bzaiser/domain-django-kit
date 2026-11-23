@@ -235,7 +235,7 @@ def _search_domain_kit(request, q: str):
         if mod_map.get("contracts", {}).get("can_read"):
             allowed_types.append("contract")
         if mod_map.get("inventory", {}).get("can_read"):
-            allowed_types.append("inventory")
+            allowed_types.extend(["inventory", "resource"])
         if mod_map.get("accounts", {}).get("can_read"):
             allowed_types.append("account")
         if allowed_types:
