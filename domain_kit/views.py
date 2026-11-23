@@ -3,6 +3,7 @@ import json
 import mimetypes
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.db.models import Q, Sum
@@ -27,7 +28,14 @@ from .models import (
     Status,
     Unit,
 )
-from .services import count_module_data, get_module_access, get_user_module_map, purge_module_data, seed_domain_defaults
+from .services import (
+    count_module_data,
+    ensure_group_permission_rows,
+    get_module_access,
+    get_user_module_map,
+    purge_module_data,
+    seed_domain_defaults,
+)
 
 
 def _to_dec(val, default="0.00") -> Decimal:
@@ -160,6 +168,8 @@ def persons_page_view(request):
             person.category = _fk_or_none(Category, request.POST.get("category_id"))
             person.status = _fk_or_none(Status, request.POST.get("status_id"))
             person.responsible_person = _fk_or_none(Person, request.POST.get("responsible_id"))
+            if "user_id" in request.POST:
+                person.user = _fk_or_none(get_user_model(), request.POST.get("user_id"))
             person.notes = (request.POST.get("notes") or "").strip()
             person.save()
             role_ids = [int(r) for r in request.POST.getlist("role_ids") if str(r).isdigit()]
@@ -231,6 +241,7 @@ def persons_page_view(request):
             "statuses": Status.for_scope("person", "document"),
             "roles": Role.objects.all(),
             "units": Unit.objects.all(),
+            "auth_users": get_user_model().objects.order_by("username"),
             "kpi_persons_total": persons.count(),
             "kpi_roles_total": Role.objects.count(),
             "kpi_addresses_total": addresses.count(),
@@ -647,6 +658,7 @@ def settings_page_view(request):
             Role.objects.filter(pk=request.POST.get("pk")).delete()
             return redirect(f"{request.path}?tab=roles")
 
+    ensure_group_permission_rows()
     groups = list(Group.objects.all().order_by("name"))
     perm_lookup = {
         (p.group_id, p.module_key): p.access_level
@@ -660,7 +672,7 @@ def settings_page_view(request):
             "enabled": solo.is_module_enabled(mod_key),
             "record_count": count_module_data(mod_key),
             "group_perms": [
-                {"group": g, "level": perm_lookup.get((g.id, mod_key), "read")}
+                {"group": g, "level": perm_lookup.get((g.id, mod_key), "none")}
                 for g in groups
             ],
         })
@@ -686,5 +698,63 @@ def settings_page_view(request):
             "units": Unit.objects.all(),
             "statuses": Status.objects.all(),
             "roles": Role.objects.select_related("category"),
+        },
+    )
+
+
+@login_required
+def self_service_profile_view(request):
+    person = (
+        Person.objects.filter(user=request.user)
+        .select_related("category", "status")
+        .prefetch_related("roles", "addresses")
+        .first()
+    )
+    if request.method == "POST":
+        if not person:
+            messages.error(request, "Ihrem Benutzerkonto ist noch kein Personenprofil zugeordnet.")
+            return redirect("domain_kit:self_service")
+        action = request.POST.get("action") or "save_contact"
+        if action == "save_contact":
+            person.email = (request.POST.get("email") or "").strip()[:140]
+            person.phone = (request.POST.get("phone") or "").strip()[:60]
+            person.mobile = (request.POST.get("mobile") or "").strip()[:60]
+            person.birth_date = request.POST.get("birth_date") or None
+            if request.FILES.get("photo"):
+                person.photo = request.FILES["photo"]
+            elif request.POST.get("remove_photo") == "1":
+                person.photo = None
+            person.save()
+            messages.success(request, "Ihre Kontaktdaten wurden aktualisiert.")
+            return redirect("domain_kit:self_service")
+        if action in ("create_address", "update_address"):
+            addr = (
+                get_object_or_404(Address, pk=request.POST.get("pk"), person=person)
+                if action == "update_address"
+                else Address(person=person)
+            )
+            addr.label = (request.POST.get("label") or "Hauptadresse").strip()[:80]
+            addr.street = (request.POST.get("street") or "").strip()[:140]
+            addr.address_addition = (request.POST.get("address_addition") or "").strip()[:140]
+            addr.postal_code = (request.POST.get("postal_code") or "").strip()[:24]
+            addr.city = (request.POST.get("city") or "").strip()[:80]
+            addr.state = (request.POST.get("state") or "").strip()[:80]
+            addr.country = (request.POST.get("country") or "Deutschland").strip()[:60]
+            addr.is_primary = bool(request.POST.get("is_primary"))
+            addr.save()
+            messages.success(request, "Adresse gespeichert.")
+            return redirect("domain_kit:self_service")
+        if action == "delete_address":
+            Address.objects.filter(pk=request.POST.get("pk"), person=person).delete()
+            messages.success(request, "Adresse entfernt.")
+            return redirect("domain_kit:self_service")
+
+    addresses = list(person.addresses.all()) if person else []
+    return render(
+        request,
+        "domain_kit/self_service.html",
+        {
+            "person": person,
+            "addresses": addresses,
         },
     )

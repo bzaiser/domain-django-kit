@@ -333,6 +333,13 @@
                         </select>
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label small">Benutzerkonto (Self-Service / Login)</label>
+                        <select name="user_id" class="form-select">
+                            <option value="">— Kein Login verknüpft —</option>
+                            {% for u in auth_users %}<option value="{{ u.id }}" {% if p.user_id == u.id %}selected{% endif %}>{{ u.username }}{% if u.email %} ({{ u.email }}){% endif %}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label small">Rollen</label>
                         <select name="role_ids" class="form-select" multiple>
                             {% for r in roles %}<option value="{{ r.id }}" {% if r in p.roles.all %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
@@ -463,6 +470,13 @@
                         <select name="responsible_id" class="form-select">
                             <option value="">—</option>
                             {% for rp in persons %}<option value="{{ rp.id }}">{{ rp.full_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Benutzerkonto (Self-Service / Login)</label>
+                        <select name="user_id" class="form-select">
+                            <option value="">— Kein Login verknüpft —</option>
+                            {% for u in auth_users %}<option value="{{ u.id }}">{{ u.username }}{% if u.email %} ({{ u.email }}){% endif %}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-6">

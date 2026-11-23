@@ -5,6 +5,7 @@ from . import views
 app_name = "domain_kit"
 
 urlpatterns = [
+    path("me/", views.self_service_profile_view, name="self_service"),
     path("persons/", views.persons_page_view, name="persons"),
     path("persons/<int:pk>/photo/", views.person_photo_view, name="person_photo"),
     path("assets/", views.assets_page_view, name="assets"),

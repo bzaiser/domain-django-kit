@@ -57,6 +57,46 @@ def get_user_module_map(user) -> dict:
     return result
 
 
+EDITORIAL_GROUP_NAMES = ("Redakteur", "Leitung / Vorstand", "Vorstand")
+
+
+def has_editorial_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    return user.groups.filter(name__in=EDITORIAL_GROUP_NAMES).exists()
+
+
+def has_any_domain_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    if has_editorial_access(user):
+        return True
+    return any(get_module_access(user, key) != "none" for key in ALL_MODULES)
+
+
+def ensure_group_permission_rows(db_alias: str = "default") -> int:
+    created = 0
+    for grp in Group.objects.using(db_alias).all():
+        existing = set(
+            DomainGroupPermission.objects.using(db_alias)
+            .filter(group_id=grp.pk)
+            .values_list("module_key", flat=True)
+        )
+        for mod_key in ALL_MODULES:
+            if mod_key not in existing:
+                DomainGroupPermission.objects.using(db_alias).get_or_create(
+                    group_id=grp.pk,
+                    module_key=mod_key,
+                    defaults={"access_level": "none"},
+                )
+                created += 1
+    return created
+
+
 def seed_domain_defaults(db_alias: str = "default") -> dict:
     DomainModuleSettings.objects.using(db_alias).get_or_create(pk=1)
 
@@ -147,7 +187,7 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
             },
         )
 
-    # 5. Default Permission Groups (Gast, Mitarbeiter, Personalverantwortlicher)
+    # 5. Default Permission Groups (project-neutral + portal/editorial roles)
     group_matrices = {
         "Gast": {
             "master_data": "none",
@@ -157,6 +197,29 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
             "contracts": "none",
             "inventory": "read",
             "accounts": "none",
+            "documents": "read",
+            "global_search": "read",
+        },
+        "Mitglied / Portal": {m: "none" for m in ALL_MODULES},
+        "Redakteur": {
+            "master_data": "none",
+            "persons": "read",
+            "addresses": "read",
+            "assets": "none",
+            "contracts": "none",
+            "inventory": "none",
+            "accounts": "none",
+            "documents": "write",
+            "global_search": "read",
+        },
+        "Buchhaltung / Kassierer": {
+            "master_data": "none",
+            "persons": "read",
+            "addresses": "read",
+            "assets": "read",
+            "contracts": "write",
+            "inventory": "none",
+            "accounts": "write",
             "documents": "read",
             "global_search": "read",
         },
@@ -171,6 +234,7 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
             "documents": "write",
             "global_search": "read",
         },
+        "Leitung / Vorstand": {m: "write" for m in ALL_MODULES},
         "Personalverantwortlicher": {
             m: "write" for m in ALL_MODULES
         },
@@ -183,6 +247,7 @@ def seed_domain_defaults(db_alias: str = "default") -> dict:
                 module_key=mod_key,
                 defaults={"access_level": level},
             )
+    ensure_group_permission_rows(db_alias)
 
     return {
         "units": Unit.objects.using(db_alias).count(),

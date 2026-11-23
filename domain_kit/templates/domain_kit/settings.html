@@ -69,6 +69,9 @@
         </form>
     </div>
     <div class="card-body">
+        <div class="alert alert-info py-2 small mb-3">
+            <strong>Hinweis:</strong> Gruppenrechte greifen für Benutzer mit <code>is_staff = Nein</code>. Benutzer mit <code>is_staff = Ja</code> (Admin) haben immer Vollzugriff inkl. System-Updates &amp; Struktur. Neu angelegte Gruppen starten automatisch mit <code>none</code>.
+        </div>
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="save_modules">

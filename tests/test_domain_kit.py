@@ -443,6 +443,52 @@ class DomainKitTests(TestCase):
 
         self.assertIn("Treffer", _extract_snippet("Das ist ein langer Treffer Text zum Prüfen", "Treffer"))
 
+    def test_member_self_service_editorial_and_auto_group_rows(self):
+        from domain_kit.models import Address, DomainGroupPermission, Person
+        from domain_kit.services import ensure_group_permission_rows, has_editorial_access
+
+        # 1. Seeded groups include Redakteur, Mitglied / Portal, Buchhaltung / Kassierer, Leitung / Vorstand
+        red_grp = Group.objects.get(name="Redakteur")
+        mem_grp = Group.objects.get(name="Mitglied / Portal")
+        self.assertEqual(DomainGroupPermission.objects.get(group=red_grp, module_key="documents").access_level, "write")
+        self.assertEqual(DomainGroupPermission.objects.get(group=red_grp, module_key="master_data").access_level, "none")
+        self.assertEqual(DomainGroupPermission.objects.get(group=mem_grp, module_key="persons").access_level, "none")
+
+        # 2. Manual group gets 'none' initialized automatically
+        custom_grp = Group.objects.create(name="Testgruppe")
+        ensure_group_permission_rows()
+        self.assertEqual(DomainGroupPermission.objects.get(group=custom_grp, module_key="persons").access_level, "none")
+
+        # 3. Redakteur has editorial access without is_staff
+        red_user = User.objects.create_user(username="redakteur_u", password="pw", is_staff=False)
+        red_user.groups.add(red_grp)
+        self.assertTrue(has_editorial_access(red_user))
+
+        # 4. Member self-service (/domain/me/)
+        mem_user = User.objects.create_user(username="mitglied_u", password="pw", is_staff=False)
+        mem_user.groups.add(mem_grp)
+        other_person = Person.objects.create(first_name="Fremd", last_name="Person")
+        other_addr = Address.objects.create(person=other_person, label="Fremd", street="Fremdstr. 1", city="Berlin")
+        own_person = Person.objects.create(first_name="Max", last_name="Mitglied", user=mem_user, email="alt@example.com")
+
+        self.client.force_login(mem_user)
+        self.assertEqual(self.client.get("/domain/persons/").status_code, 403)
+        r_me = self.client.get("/domain/me/")
+        self.assertEqual(r_me.status_code, 200)
+        self.assertContains(r_me, "Max Mitglied")
+
+        self.client.post("/domain/me/", {"action": "save_contact", "email": "neu@example.com", "phone": "01234", "mobile": "0170"})
+        own_person.refresh_from_db()
+        self.assertEqual(own_person.email, "neu@example.com")
+        self.assertEqual(own_person.phone, "01234")
+
+        self.client.post("/domain/me/", {"action": "create_address", "label": "Privat", "street": "Hauptstr. 5", "postal_code": "12345", "city": "Ulm", "country": "Deutschland"})
+        self.assertTrue(own_person.addresses.filter(street="Hauptstr. 5").exists())
+
+        # Cannot delete another person's address
+        self.client.post("/domain/me/", {"action": "delete_address", "pk": other_addr.id})
+        self.assertTrue(Address.objects.filter(pk=other_addr.id).exists())
+
     def test_no_missing_migrations(self):
         call_command("makemigrations", "domain_kit", "--check", "--dry-run", verbosity=0)
 
