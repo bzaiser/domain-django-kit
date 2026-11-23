@@ -305,6 +305,12 @@
                     <div class="col-md-4"><label class="form-label small">Position / Beruf</label><input type="text" name="job_title" class="form-control" value="{{ p.job_title }}"></div>
                     <div class="col-md-6"><label class="form-label small">Website</label><input type="url" name="website" class="form-control" value="{{ p.website }}" placeholder="https://..."></div>
                     <div class="col-md-6"><label class="form-label small">Steuer-/USt-ID</label><input type="text" name="tax_id" class="form-control" value="{{ p.tax_id }}"></div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="editPub-{{ p.id }}" {% if p.is_public %}checked{% endif %}>
+                            <label class="form-check-label small fw-semibold" for="editPub-{{ p.id }}"><i class="bi bi-globe2 me-1 text-primary"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte)</label>
+                        </div>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label small">Kategorie (Zweck: Person)</label>
                         <select name="category_id" class="form-select">
@@ -432,6 +438,12 @@
                     <div class="col-md-4"><label class="form-label small">Position / Beruf</label><input type="text" name="job_title" class="form-control"></div>
                     <div class="col-md-6"><label class="form-label small">Website</label><input type="url" name="website" class="form-control" placeholder="https://..."></div>
                     <div class="col-md-6"><label class="form-label small">Steuer-/USt-ID</label><input type="text" name="tax_id" class="form-control"></div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="newPersonPublic">
+                            <label class="form-check-label small fw-semibold" for="newPersonPublic"><i class="bi bi-globe2 me-1 text-primary"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte)</label>
+                        </div>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label small">Kategorie (Zweck: Person)</label>
                         <select name="category_id" class="form-select">

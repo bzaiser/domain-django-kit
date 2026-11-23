@@ -76,6 +76,8 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
     doc.document_date = request.POST.get("document_date") or None
     doc.tags = (request.POST.get("tags") or "").strip()[:160]
     doc.notes = (request.POST.get("notes") or "").strip()
+    if "is_public" in request.POST or "is_public_present" in request.POST:
+        doc.is_public = bool(request.POST.get("is_public"))
     doc.save()
     return doc
 
@@ -146,6 +148,7 @@ def persons_page_view(request):
             person.job_title = (request.POST.get("job_title") or "").strip()[:100]
             person.birth_date = request.POST.get("birth_date") or None
             person.website = (request.POST.get("website") or "").strip()[:200]
+            person.is_public = bool(request.POST.get("is_public"))
             person.tax_id = (request.POST.get("tax_id") or "").strip()[:60]
             if request.FILES.get("photo"):
                 person.photo = request.FILES["photo"]
