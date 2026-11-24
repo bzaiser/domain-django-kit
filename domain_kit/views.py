@@ -221,7 +221,38 @@ def persons_page_view(request):
             messages.success(request, "Dokument gelöscht.")
             return redirect(f"{request.path}?tab=documents")
 
-    persons = Person.objects.select_related("category", "status", "responsible_person").prefetch_related("roles", "addresses")
+        if action == "create_person_contract":
+            person = get_object_or_404(Person, pk=request.POST.get("person_id"))
+            title = (request.POST.get("title") or "").strip()[:140] or f"Vertrag {person.full_name}"
+            contract = AssetItem.objects.create(
+                asset_type="contract",
+                title=title,
+                person=person,
+                quantity=_parse_decimal(request.POST.get("quantity")),
+                billing_interval=(request.POST.get("billing_interval") or "").strip()[:32],
+                start_date=request.POST.get("start_date") or None,
+                end_date=request.POST.get("end_date") or None,
+                status=_fk_or_none(Status, request.POST.get("status_id")),
+                notes=(request.POST.get("notes") or "").strip(),
+            )
+            if request.FILES.get("contract_file"):
+                up = request.FILES["contract_file"]
+                Document.objects.create(
+                    title=title[:160],
+                    file=up,
+                    file_name=up.name[:180],
+                    topic="contract",
+                    person=person,
+                    asset=contract,
+                    amount=contract.quantity,
+                    document_date=contract.start_date,
+                )
+            messages.success(request, f"Vertrag „{contract.title}“ mit {person.full_name} verknüpft.")
+            return redirect(f"{request.path}?tab=persons")
+
+    persons = Person.objects.select_related("category", "status", "responsible_person").prefetch_related(
+        "roles", "addresses", "assets__status", "documents"
+    )
     addresses = Address.objects.select_related("person", "category")
     person_docs = Document.objects.filter(Q(topic="person") | Q(person__isnull=False)).select_related(
         "category", "status", "person", "unit"
