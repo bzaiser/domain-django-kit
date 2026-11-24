@@ -47,7 +47,18 @@
                     <td>{% if d.status %}<span class="badge" style="background: var(--theme-state-{{ d.status.color_state }}, var(--app-primary));">{{ d.status.name }}</span>{% else %}—{% endif %}</td>
                     <td class="small">{% if d.person %}{{ d.person.full_name }}{% elif d.asset %}{{ d.asset.title }}{% else %}—{% endif %}</td>
                     <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>
-                    <td>{{ d.document_date|default:"—" }}</td>
+                    <td class="small">
+                        <div>{{ d.document_date|default:"—" }}</div>
+                        {% if d.valid_until %}
+                            {% if d.is_expired %}
+                                <span class="badge text-bg-danger">Abgelaufen ({{ d.valid_until|date:"d.m.Y" }})</span>
+                            {% elif d.expires_soon %}
+                                <span class="badge text-bg-warning">Läuft bald ab ({{ d.valid_until|date:"d.m.Y" }})</span>
+                            {% else %}
+                                <div class="text-muted">bis {{ d.valid_until|date:"d.m.Y" }}</div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
                     <td class="text-end text-nowrap">
                         {% if d.file or d.extracted_text %}
                         <textarea id="docTxt-{{ d.id }}" class="d-none">{{ d.extracted_text }}</textarea>
@@ -65,6 +76,9 @@
                         <a href="{% url 'domain_kit:document_download' d.id %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Herunterladen"><i class="bi bi-download"></i></a>
                         {% endif %}
                         {% if can_write %}
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#docEditModal-{{ d.id }}" title="Bearbeiten">
+                            <i class="bi bi-pencil"></i>
+                        </button>
                         <form method="post" class="d-inline">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete_doc">
@@ -85,6 +99,110 @@
 
 {% include "domain_kit/includes/doc_preview_modal.html" %}
 {% if can_write %}
-{% include "domain_kit/includes/doc_upload_modal.html" with modal_id="docCreateModal" modal_title="Neues Dokument hochladen" show_topic_select=True %}
+{% include "domain_kit/includes/doc_upload_modal.html" with modal_id="docCreateModal" modal_title="Neues Dokument hochladen" show_topic_select=True show_person_select=True show_asset_select=True all_assets=assets %}
+{% for d in documents %}
+<div class="modal fade" id="docEditModal-{{ d.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="post" enctype="multipart/form-data" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_doc">
+            <input type="hidden" name="pk" value="{{ d.id }}">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-1"></i>Dokument bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <label class="form-label small">Titel</label>
+                        <input type="text" name="title" class="form-control form-control-sm" value="{{ d.title }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Thema</label>
+                        <select name="topic" class="form-select form-select-sm">
+                            <option value="general" {% if d.topic == 'general' %}selected{% endif %}>Allgemein</option>
+                            <option value="person" {% if d.topic == 'person' %}selected{% endif %}>Personen &amp; Adressen</option>
+                            <option value="contract" {% if d.topic == 'contract' %}selected{% endif %}>Verträge</option>
+                            <option value="inventory" {% if d.topic == 'inventory' %}selected{% endif %}>Inventar</option>
+                            <option value="account" {% if d.topic == 'account' %}selected{% endif %}>Konten</option>
+                            <option value="asset" {% if d.topic == 'asset' %}selected{% endif %}>Assets (Allgemein)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Kategorie</label>
+                        <select name="category_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for c in doc_categories %}<option value="{{ c.id }}" {% if d.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Status</label>
+                        <select name="status_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for s in statuses %}<option value="{{ s.id }}" {% if d.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Person</label>
+                        <select name="person_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for p in persons %}<option value="{{ p.id }}" {% if d.person_id == p.id %}selected{% endif %}>{{ p.full_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Verknüpftes Asset / Vertrag</label>
+                        <select name="asset_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for a in assets %}<option value="{{ a.id }}" {% if d.asset_id == a.id %}selected{% endif %}>{{ a.title }} ({{ a.get_asset_type_display }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Betrag</label>
+                        <input type="text" name="amount" class="form-control form-control-sm" value="{{ d.amount }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Einheit</label>
+                        <select name="unit_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for u in units %}<option value="{{ u.id }}" {% if d.unit_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.symbol }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Dokumentdatum</label>
+                        <input type="date" name="document_date" class="form-control form-control-sm" value="{{ d.document_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Gültig bis / Ablauf</label>
+                        <input type="date" name="valid_until" class="form-control form-control-sm" value="{{ d.valid_until|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Stichworte / Tags</label>
+                        <input type="text" name="tags" class="form-control form-control-sm" value="{{ d.tags }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Neue Datei ersetzen (optional)</label>
+                        <input type="file" name="file" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">Notizen</label>
+                        <textarea name="notes" rows="2" class="form-control form-control-sm">{{ d.notes }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="hidden" name="is_public_present" value="1">
+                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="docEditPub-{{ d.id }}" {% if d.is_public %}checked{% endif %}>
+                            <label class="form-check-label small fw-semibold" for="docEditPub-{{ d.id }}"><i class="bi bi-globe2 me-1 text-primary"></i>Öffentlich auf Webseite (Downloads)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4">Speichern</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endif %}
 {% endblock %}

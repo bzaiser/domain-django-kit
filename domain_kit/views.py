@@ -82,6 +82,7 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
     doc.amount = _to_dec(request.POST.get("amount"))
     doc.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
     doc.document_date = request.POST.get("document_date") or None
+    doc.valid_until = request.POST.get("valid_until") or None
     doc.tags = (request.POST.get("tags") or "").strip()[:160]
     doc.notes = (request.POST.get("notes") or "").strip()
     if "is_public" in request.POST or "is_public_present" in request.POST:
@@ -729,6 +730,15 @@ def settings_page_view(request):
             "categories": cats,
             "units": Unit.objects.all(),
             "statuses": Status.objects.all(),
+            "status_scope_choices": [
+                ("global", "Global (überall verfügbar)"),
+                ("document", "Dokumente"),
+                ("person", "Personen & Adressen"),
+                ("contract", "Verträge"),
+                ("inventory", "Inventar"),
+                ("account", "Konten"),
+                ("asset", "Assets (Allgemein)"),
+            ],
             "roles": Role.objects.select_related("category"),
         },
     )

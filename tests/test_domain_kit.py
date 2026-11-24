@@ -492,6 +492,57 @@ class DomainKitTests(TestCase):
     def test_no_missing_migrations(self):
         call_command("makemigrations", "domain_kit", "--check", "--dry-run", verbosity=0)
 
+    def test_document_edit_valid_until_and_status_scope(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from domain_kit.models import Category, Document, DomainModuleSettings, Status
+
+        solo = DomainModuleSettings.get_solo()
+        solo.enable_documents = True
+        solo.save()
+        self.client.force_login(self.admin)
+
+        st = Status.objects.create(name="Geprüft", scope="document", position=15)
+        cat = Category.objects.create(name="Bescheid", purpose="document")
+        soon = (timezone.localdate() + timedelta(days=10)).isoformat()
+
+        r_create = self.client.post("/domain/documents/", {
+            "action": "create_doc",
+            "title": "Zuwendungsbescheid",
+            "topic": "general",
+            "category_id": str(cat.id),
+            "status_id": str(st.id),
+            "valid_until": soon,
+            "tags": "2026, wichtig",
+            "notes": "Erstnotiz",
+        })
+        self.assertEqual(r_create.status_code, 302)
+        doc = Document.objects.get(title="Zuwendungsbescheid")
+        self.assertEqual(doc.category_id, cat.id)
+        self.assertEqual(doc.status_id, st.id)
+        self.assertTrue(doc.expires_soon)
+        self.assertFalse(doc.is_expired)
+
+        r_get = self.client.get("/domain/documents/")
+        self.assertContains(r_get, "Läuft bald ab")
+        self.assertContains(r_get, f'id="docEditModal-{doc.id}"')
+
+        r_edit = self.client.post("/domain/documents/", {
+            "action": "update_doc",
+            "pk": str(doc.id),
+            "title": "Zuwendungsbescheid Neu",
+            "topic": "contract",
+            "category_id": str(cat.id),
+            "status_id": str(st.id),
+            "valid_until": (timezone.localdate() - timedelta(days=1)).isoformat(),
+            "notes": "Aktualisiert",
+        })
+        self.assertEqual(r_edit.status_code, 302)
+        doc.refresh_from_db()
+        self.assertEqual(doc.title, "Zuwendungsbescheid Neu")
+        self.assertEqual(doc.topic, "contract")
+        self.assertTrue(doc.is_expired)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

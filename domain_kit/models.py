@@ -359,6 +359,7 @@ class Document(models.Model):
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     unit = models.ForeignKey(Unit, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
     document_date = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
     person = models.ForeignKey(Person, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
     asset = models.ForeignKey(AssetItem, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
     tags = models.CharField(max_length=160, blank=True, default="")
@@ -369,6 +370,22 @@ class Document(models.Model):
 
     class Meta:
         ordering = ["-document_date", "-created_at", "id"]
+
+    @property
+    def is_expired(self) -> bool:
+        if not self.valid_until:
+            return False
+        from django.utils import timezone
+        return self.valid_until < timezone.localdate()
+
+    @property
+    def expires_soon(self) -> bool:
+        if not self.valid_until or self.is_expired:
+            return False
+        from datetime import timedelta
+        from django.utils import timezone
+        today = timezone.localdate()
+        return self.valid_until <= today + timedelta(days=30)
 
     def __str__(self):
         return f"{self.title} ({self.topic})"
