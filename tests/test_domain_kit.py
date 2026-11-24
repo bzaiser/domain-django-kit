@@ -526,6 +526,15 @@ class DomainKitTests(TestCase):
         r_get = self.client.get("/domain/documents/")
         self.assertContains(r_get, "Läuft bald ab")
         self.assertContains(r_get, f'id="docEditModal-{doc.id}"')
+        self.assertContains(r_get, cat.badge_style)
+
+        r_flt = self.client.get(f"/domain/documents/?category={cat.id}&status={st.id}")
+        self.assertContains(r_flt, "Zuwendungsbescheid")
+        r_flt_empty = self.client.get("/domain/documents/?category=999999")
+        self.assertNotContains(r_flt_empty, "Zuwendungsbescheid")
+
+        r_st = self.client.get("/domain/settings/?tab=statuses&scope=document")
+        self.assertContains(r_st, "Geprüft")
 
         r_edit = self.client.post("/domain/documents/", {
             "action": "update_doc",

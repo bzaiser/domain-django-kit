@@ -61,8 +61,22 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-table me-1"></i> Personen & Rollen</span>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-table me-1"></i> Personen &amp; Rollen</span>
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+            <input type="hidden" name="tab" value="persons">
+            <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="">Alle Kategorien</option>
+                {% for c in person_categories %}<option value="{{ c.id }}" {% if category_filter == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select>
+            <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="">Alle Status</option>
+                {% for s in statuses %}<option value="{{ s.id }}" {% if status_filter == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+            </select>
+            {% if category_filter or status_filter %}
+            <a href="?tab=persons" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2">Reset</a>
+            {% endif %}
+        </form>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">

@@ -193,23 +193,24 @@ document.addEventListener('click', function (e) {
 
 {% elif active_tab == 'categories' %}
 <div class="card shadow-sm mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-tags me-1"></i> Kategorien (nach Zweck gefiltert)</span>
-        <div class="d-flex gap-1">
-            <a href="?tab=categories" class="btn btn-sm btn-light rounded-pill">Alle</a>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-tags me-1"></i> Kategorien (nach Bereich / Zweck gefiltert)</span>
+        <div class="d-flex flex-wrap gap-1">
+            <a href="?tab=categories" class="btn btn-sm {% if not purpose_filter %}btn-primary{% else %}btn-light{% endif %} rounded-pill">Alle</a>
             {% for p_key, p_lbl in purpose_choices %}
-            <a href="?tab=categories&purpose={{ p_key }}" class="btn btn-sm btn-light rounded-pill">{{ p_lbl }}</a>
+            <a href="?tab=categories&purpose={{ p_key }}" class="btn btn-sm {% if purpose_filter == p_key %}btn-primary{% else %}btn-light{% endif %} rounded-pill">{{ p_lbl }}</a>
             {% endfor %}
         </div>
     </div>
     <div class="card-body">
+        <div class="small text-muted mb-2">Hinweis: Kategorien mit Bereich <strong>Allgemein</strong> stehen in allen Modulen zur Auswahl; spezifische Bereiche (z. B. <em>Dokumente</em>, <em>Personen</em>, <em>Verträge</em>) erscheinen gezielt dort.</div>
         {% if can_write %}
         <form method="post" class="row g-2 mb-3 align-items-end">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_category">
             <div class="col-md-3"><label class="form-label small">Bezeichnung</label><input type="text" name="name" class="form-control form-control-sm" required></div>
             <div class="col-md-3">
-                <label class="form-label small">Zweck</label>
+                <label class="form-label small">Bereich / Zweck (Scope)</label>
                 <select name="purpose" class="form-select form-select-sm">
                     {% for p_key, p_lbl in purpose_choices %}<option value="{{ p_key }}">{{ p_lbl }}</option>{% endfor %}
                 </select>
@@ -284,7 +285,15 @@ document.addEventListener('click', function (e) {
 
 {% elif active_tab == 'statuses' %}
 <div class="card shadow-sm">
-    <div class="card-header"><i class="bi bi-list-ol me-1"></i> Status (sortiert nach Position, nicht alphabetisch!)</div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-list-ol me-1"></i> Status (sortiert nach Position, nicht alphabetisch!)</span>
+        <div class="d-flex flex-wrap gap-1">
+            <a href="?tab=statuses" class="btn btn-sm {% if not scope_filter %}btn-primary{% else %}btn-light{% endif %} rounded-pill">Alle</a>
+            {% for sk, sl in status_scope_choices %}
+            <a href="?tab=statuses&scope={{ sk }}" class="btn btn-sm {% if scope_filter == sk %}btn-primary{% else %}btn-light{% endif %} rounded-pill">{{ sl }}</a>
+            {% endfor %}
+        </div>
+    </div>
     <div class="card-body">
         {% if can_write %}
         <form method="post" class="row g-2 mb-3 align-items-end">

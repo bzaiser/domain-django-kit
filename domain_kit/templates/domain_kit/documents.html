@@ -32,7 +32,23 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header"><i class="bi bi-table me-1"></i> Dokumente</div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-table me-1"></i> Dokumente</span>
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+            {% if topic_filter != 'all' %}<input type="hidden" name="topic" value="{{ topic_filter }}">{% endif %}
+            <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="">Alle Kategorien</option>
+                {% for c in doc_categories %}<option value="{{ c.id }}" {% if category_filter == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select>
+            <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="">Alle Status</option>
+                {% for s in statuses %}<option value="{{ s.id }}" {% if status_filter == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+            </select>
+            {% if category_filter or status_filter %}
+            <a href="?topic={{ topic_filter }}" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2">Reset</a>
+            {% endif %}
+        </form>
+    </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
@@ -43,7 +59,7 @@
                 <tr>
                     <td class="fw-semibold">{{ d.title }}{% if d.file_name %}<div class="small text-muted">{{ d.file_name }}</div>{% endif %}</td>
                     <td><span class="badge bg-secondary">{{ d.get_topic_display }}</span></td>
-                    <td>{{ d.category.name|default:"—" }}</td>
+                    <td>{% if d.category %}<span class="badge" style="{{ d.category.badge_style }}">{{ d.category.name }}</span>{% else %}—{% endif %}</td>
                     <td>{% if d.status %}<span class="badge" style="background: var(--theme-state-{{ d.status.color_state }}, var(--app-primary));">{{ d.status.name }}</span>{% else %}—{% endif %}</td>
                     <td class="small">{% if d.person %}{{ d.person.full_name }}{% elif d.asset %}{{ d.asset.title }}{% else %}—{% endif %}</td>
                     <td>{{ d.amount }} {{ d.unit.symbol|default:"" }}</td>

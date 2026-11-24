@@ -254,6 +254,12 @@ def persons_page_view(request):
     persons = Person.objects.select_related("category", "status", "responsible_person").prefetch_related(
         "roles", "addresses", "assets__status", "documents"
     )
+    category_filter = (request.GET.get("category") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+    if category_filter.isdigit():
+        persons = persons.filter(category_id=int(category_filter))
+    if status_filter.isdigit():
+        persons = persons.filter(status_id=int(status_filter))
     addresses = Address.objects.select_related("person", "category")
     person_docs = Document.objects.filter(Q(topic="person") | Q(person__isnull=False)).select_related(
         "category", "status", "person", "unit"
@@ -268,6 +274,8 @@ def persons_page_view(request):
             "persons": persons,
             "addresses": addresses,
             "person_docs": person_docs,
+            "category_filter": category_filter,
+            "status_filter": status_filter,
             "person_categories": Category.for_purpose("person", "general"),
             "address_categories": Category.for_purpose("address", "general"),
             "doc_categories": Category.for_purpose("document", "general"),
@@ -360,6 +368,12 @@ def assets_page_view(request):
     all_assets = AssetItem.objects.filter(asset_type__in=allowed_asset_types).select_related(
         "category", "status", "person", "address", "unit"
     )
+    category_filter = (request.GET.get("category") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+    if category_filter.isdigit():
+        all_assets = all_assets.filter(category_id=int(category_filter))
+    if status_filter.isdigit():
+        all_assets = all_assets.filter(status_id=int(status_filter))
     contracts = all_assets.filter(asset_type="contract")
     inventory = all_assets.filter(asset_type__in=["inventory", "resource"])
     accounts = all_assets.filter(asset_type="account")
@@ -404,8 +418,11 @@ def assets_page_view(request):
             "contract_categories": Category.for_purpose("contract", "asset", "general"),
             "inventory_categories": Category.for_purpose("inventory", "asset", "general"),
             "account_categories": Category.for_purpose("account", "asset", "general"),
+            "all_asset_categories": Category.for_purpose("contract", "inventory", "account", "asset", "general"),
             "doc_categories": Category.for_purpose("document", "general"),
             "statuses": Status.for_scope("asset", "contract", "inventory", "account"),
+            "category_filter": category_filter,
+            "status_filter": status_filter,
             "units": Unit.objects.all(),
             "persons": Person.objects.all(),
             "addresses": Address.objects.all(),
@@ -445,6 +462,12 @@ def documents_page_view(request):
     docs = Document.objects.select_related("category", "status", "person", "asset", "unit")
     if topic_filter in ("person", "asset", "contract", "inventory", "account", "general"):
         docs = docs.filter(topic=topic_filter)
+    category_filter = (request.GET.get("category") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+    if category_filter.isdigit():
+        docs = docs.filter(category_id=int(category_filter))
+    if status_filter.isdigit():
+        docs = docs.filter(status_id=int(status_filter))
 
     total_amount = docs.aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
     return render(
@@ -453,6 +476,8 @@ def documents_page_view(request):
         {
             "can_write": can_write,
             "topic_filter": topic_filter,
+            "category_filter": category_filter,
+            "status_filter": status_filter,
             "documents": docs,
             "total_amount": total_amount,
             "doc_categories": Category.for_purpose("document", "general"),
@@ -714,6 +739,10 @@ def settings_page_view(request):
     cats = Category.objects.all()
     if purpose_filter:
         cats = cats.filter(purpose=purpose_filter)
+    scope_filter = request.GET.get("scope", "")
+    sts = Status.objects.all()
+    if scope_filter:
+        sts = sts.filter(scope=scope_filter)
 
     return render(
         request,
@@ -727,9 +756,10 @@ def settings_page_view(request):
             "access_choices": ACCESS_CHOICES,
             "purpose_choices": PURPOSE_CHOICES,
             "purpose_filter": purpose_filter,
+            "scope_filter": scope_filter,
             "categories": cats,
             "units": Unit.objects.all(),
-            "statuses": Status.objects.all(),
+            "statuses": sts,
             "status_scope_choices": [
                 ("global", "Global (überall verfügbar)"),
                 ("document", "Dokumente"),
