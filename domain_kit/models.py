@@ -25,6 +25,7 @@ ACCESS_CHOICES = [
 PURPOSE_CHOICES = [
     ("person", "Person / Rolle"),
     ("address", "Adresse / Standort"),
+    ("location", "Standort / Veranstaltungsort"),
     ("asset", "Asset (Allgemein)"),
     ("contract", "Vertrag"),
     ("inventory", "Inventar"),

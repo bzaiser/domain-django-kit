@@ -301,7 +301,7 @@ def persons_page_view(request):
             "status_filter": status_filter,
             "q": q,
             "person_categories": Category.for_purpose("person", "general"),
-            "address_categories": Category.for_purpose("address", "general"),
+            "address_categories": Category.for_purpose("address", "location", "general"),
             "doc_categories": Category.for_purpose("document", "general"),
             "statuses": Status.for_scope("person", "document"),
             "roles": Role.objects.all(),
