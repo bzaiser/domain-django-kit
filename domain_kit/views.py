@@ -45,6 +45,19 @@ def _to_dec(val, default="0.00") -> Decimal:
         return Decimal(default)
 
 
+def _maybe_grid_export(request, queryset, fields, filename: str):
+    exp = (request.GET.get("export") or "").strip().lower()
+    if exp not in ("csv", "json"):
+        return None
+    try:
+        from grid_kit.mixins import export_queryset_csv, export_queryset_json
+    except ImportError:
+        return None
+    if exp == "csv":
+        return export_queryset_csv(queryset, fields, filename=f"{filename}.csv")
+    return export_queryset_json(queryset, fields, filename=f"{filename}.json")
+
+
 def _fk_or_none(model_cls, val):
     try:
         return model_cls.objects.filter(pk=int(val)).first() if val else None
@@ -256,10 +269,20 @@ def persons_page_view(request):
     )
     category_filter = (request.GET.get("category") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
     if category_filter.isdigit():
         persons = persons.filter(category_id=int(category_filter))
     if status_filter.isdigit():
         persons = persons.filter(status_id=int(status_filter))
+    if q:
+        persons = persons.filter(
+            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q)
+        )
+    exp_resp = _maybe_grid_export(
+        request, persons, ["id", "first_name", "last_name", "email", "phone", "category__name", "status__name"], "personen"
+    )
+    if exp_resp is not None:
+        return exp_resp
     addresses = Address.objects.select_related("person", "category")
     person_docs = Document.objects.filter(Q(topic="person") | Q(person__isnull=False)).select_related(
         "category", "status", "person", "unit"
@@ -276,6 +299,7 @@ def persons_page_view(request):
             "person_docs": person_docs,
             "category_filter": category_filter,
             "status_filter": status_filter,
+            "q": q,
             "person_categories": Category.for_purpose("person", "general"),
             "address_categories": Category.for_purpose("address", "general"),
             "doc_categories": Category.for_purpose("document", "general"),
@@ -371,10 +395,20 @@ def assets_page_view(request):
     )
     category_filter = (request.GET.get("category") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
     if category_filter.isdigit():
         all_assets = all_assets.filter(category_id=int(category_filter))
     if status_filter.isdigit():
         all_assets = all_assets.filter(status_id=int(status_filter))
+    if q:
+        all_assets = all_assets.filter(
+            Q(title__icontains=q) | Q(notes__icontains=q) | Q(identifier__icontains=q)
+        )
+    exp_resp = _maybe_grid_export(
+        request, all_assets, ["id", "asset_type", "title", "category__name", "status__name", "quantity", "amount"], "ressourcen"
+    )
+    if exp_resp is not None:
+        return exp_resp
     contracts = all_assets.filter(asset_type="contract")
     inventory = all_assets.filter(asset_type__in=["inventory", "resource"])
     accounts = all_assets.filter(asset_type="account")
@@ -424,6 +458,7 @@ def assets_page_view(request):
             "statuses": Status.for_scope("asset", "contract", "inventory", "account"),
             "category_filter": category_filter,
             "status_filter": status_filter,
+            "q": q,
             "units": Unit.objects.all(),
             "persons": Person.objects.all(),
             "addresses": Address.objects.all(),
@@ -465,10 +500,18 @@ def documents_page_view(request):
         docs = docs.filter(topic=topic_filter)
     category_filter = (request.GET.get("category") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
     if category_filter.isdigit():
         docs = docs.filter(category_id=int(category_filter))
     if status_filter.isdigit():
         docs = docs.filter(status_id=int(status_filter))
+    if q:
+        docs = docs.filter(Q(title__icontains=q) | Q(notes__icontains=q) | Q(extracted_text__icontains=q))
+    exp_resp = _maybe_grid_export(
+        request, docs, ["id", "title", "topic", "category__name", "status__name", "amount", "valid_until", "is_public"], "dokumente"
+    )
+    if exp_resp is not None:
+        return exp_resp
 
     total_amount = docs.aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
     return render(
@@ -479,6 +522,7 @@ def documents_page_view(request):
             "topic_filter": topic_filter,
             "category_filter": category_filter,
             "status_filter": status_filter,
+            "q": q,
             "documents": docs,
             "total_amount": total_amount,
             "doc_categories": Category.for_purpose("document", "general"),

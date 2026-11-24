@@ -36,6 +36,7 @@
         <span><i class="bi bi-table me-1"></i> Dokumente</span>
         <form method="get" class="d-flex flex-wrap align-items-center gap-2">
             {% if topic_filter != 'all' %}<input type="hidden" name="topic" value="{{ topic_filter }}">{% endif %}
+            <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Suchen..." class="form-control form-control-sm" style="width: 150px;">
             <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
                 <option value="">Alle Kategorien</option>
                 {% for c in doc_categories %}<option value="{{ c.id }}" {% if category_filter == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
@@ -44,7 +45,11 @@
                 <option value="">Alle Status</option>
                 {% for s in statuses %}<option value="{{ s.id }}" {% if status_filter == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
             </select>
-            {% if category_filter or status_filter %}
+            <div class="btn-group btn-group-sm">
+                <button type="submit" name="export" value="csv" class="btn btn-outline-secondary" title="CSV Export"><i class="bi bi-filetype-csv"></i></button>
+                <button type="submit" name="export" value="json" class="btn btn-outline-secondary" title="JSON Export"><i class="bi bi-filetype-json"></i></button>
+            </div>
+            {% if category_filter or status_filter or q %}
             <a href="?topic={{ topic_filter }}" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2">Reset</a>
             {% endif %}
         </form>
