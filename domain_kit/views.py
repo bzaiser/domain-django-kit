@@ -341,7 +341,8 @@ def assets_page_view(request):
             item.notes = (request.POST.get("notes") or "").strip()
             item.save()
             messages.success(request, "Asset gespeichert.")
-            return redirect(f"{request.path}?tab={request.POST.get('return_tab') or atype}")
+            default_tab = "inventory" if atype == "resource" else atype
+            return redirect(f"{request.path}?tab={request.POST.get('return_tab') or default_tab}")
 
         if action == "delete_asset":
             ret_tab = request.POST.get("return_tab") or "overview"
