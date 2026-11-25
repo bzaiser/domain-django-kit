@@ -816,6 +816,7 @@ def settings_page_view(request):
                 ("asset", "Assets (Allgemein)"),
             ],
             "roles": Role.objects.select_related("category"),
+            "role_categories": Category.for_purpose("person", "general"),
         },
     )
 

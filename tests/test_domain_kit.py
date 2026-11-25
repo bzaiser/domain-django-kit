@@ -580,6 +580,27 @@ class DomainKitTests(TestCase):
         self.assertIn("AktivPerson", person_modal)
         self.assertNotIn("NurDokumentStatus", person_modal)
 
+    def test_role_settings_shows_and_saves_person_categories(self):
+        from domain_kit.models import Role
+
+        self.client.force_login(self.admin)
+        cat_p = Category.objects.create(name="RollenPersonCat", purpose="person")
+        Category.objects.create(name="RollenVertragCat", purpose="contract")
+        resp = self.client.get("/domain/settings/?tab=roles")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "RollenPersonCat")
+        self.assertNotContains(resp, "RollenVertragCat")
+
+        r_create = self.client.post("/domain/settings/?tab=roles", {
+            "action": "create_role",
+            "name": "Kurator",
+            "category_id": str(cat_p.id),
+            "position": "5",
+        })
+        self.assertEqual(r_create.status_code, 302)
+        role = Role.objects.get(name="Kurator")
+        self.assertEqual(role.category_id, cat_p.id)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner
