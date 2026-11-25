@@ -32,7 +32,7 @@ def get_module_access(user, module_key: str) -> str:
         # If no group rules exist in DB at all yet, allow write for authenticated users
         if not DomainGroupPermission.objects.exists():
             return "write"
-        return "read"
+        return "none"
 
     perms = list(
         DomainGroupPermission.objects.filter(group_id__in=group_ids, module_key=module_key).values_list(
