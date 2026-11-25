@@ -601,6 +601,51 @@ class DomainKitTests(TestCase):
         role = Role.objects.get(name="Kurator")
         self.assertEqual(role.category_id, cat_p.id)
 
+    def test_stammdaten_units_edit_and_status_scope_labels(self):
+        from domain_kit.models import Unit
+
+        self.client.force_login(self.admin)
+        r_u = self.client.post("/domain/settings/?tab=units", {
+            "action": "create_unit",
+            "name": "TestEinheit",
+            "symbol": "te",
+            "dimension": "weight",
+            "decimals": "3",
+            "position": "5",
+        })
+        self.assertEqual(r_u.status_code, 302)
+        unit = Unit.objects.get(name="TestEinheit")
+        self.assertEqual(unit.dimension, "weight")
+        self.assertEqual(unit.decimals, 3)
+
+        r_u_upd = self.client.post("/domain/settings/?tab=units", {
+            "action": "update_unit",
+            "pk": str(unit.id),
+            "name": "TestEinheit Neu",
+            "symbol": "te",
+            "dimension": "weight",
+            "decimals": "1",
+            "position": "2",
+        })
+        self.assertEqual(r_u_upd.status_code, 302)
+        unit.refresh_from_db()
+        self.assertEqual(unit.name, "TestEinheit Neu")
+        self.assertEqual(unit.decimals, 1)
+
+        r_st = self.client.post("/domain/settings/?tab=statuses", {
+            "action": "create_status",
+            "name": "Abgeschlossen",
+            "scope": "person",
+            "is_final": "on",
+            "position": "",
+            "return_scope": "person",
+        })
+        self.assertEqual(r_st.status_code, 302)
+        self.assertIn("scope=person", r_st["Location"])
+        st_page = self.client.get("/domain/settings/?tab=statuses&scope=person")
+        self.assertContains(st_page, "Personen &amp; Adressen")
+        self.assertTrue(Status.objects.get(name="Abgeschlossen").is_final)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

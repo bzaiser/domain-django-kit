@@ -38,6 +38,13 @@ from .services import (
 )
 
 
+def _to_int(val, default: int = 0) -> int:
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def _to_dec(val, default="0.00") -> Decimal:
     try:
         return Decimal(str(val or default).replace(",", "."))
@@ -704,24 +711,27 @@ def settings_page_view(request):
             cat.purpose = request.POST.get("purpose") if request.POST.get("purpose") in dict(PURPOSE_CHOICES) else "general"
             cat.code = (request.POST.get("code") or "").strip()[:40]
             cat.value = (request.POST.get("value") or "").strip()[:80]
-            cat.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            cat.color_state = max(1, min(8, _to_int(request.POST.get("color_state"), 1)))
             cat.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
-            cat.position = int(request.POST.get("position") or 10)
+            cat.position = _to_int(request.POST.get("position"), 10)
             cat.save()
             messages.success(request, "Kategorie gespeichert.")
-            return redirect(f"{request.path}?tab=categories")
+            ret_purpose = (request.POST.get("return_purpose") or "").strip()
+            return redirect(f"{request.path}?tab=categories" + (f"&purpose={ret_purpose}" if ret_purpose else ""))
 
         if action == "delete_category":
             Category.objects.filter(pk=request.POST.get("pk")).delete()
-            return redirect(f"{request.path}?tab=categories")
+            ret_purpose = (request.POST.get("return_purpose") or "").strip()
+            return redirect(f"{request.path}?tab=categories" + (f"&purpose={ret_purpose}" if ret_purpose else ""))
 
         if action in ("create_unit", "update_unit"):
             u = get_object_or_404(Unit, pk=request.POST.get("pk")) if action == "update_unit" else Unit()
             u.name = (request.POST.get("name") or "Einheit").strip()[:60]
             u.symbol = (request.POST.get("symbol") or "Stk.").strip()[:20]
-            u.dimension = (request.POST.get("dimension") or "count").strip()[:24]
-            u.decimals = int(request.POST.get("decimals") or 2)
-            u.position = int(request.POST.get("position") or 10)
+            dim = (request.POST.get("dimension") or "count").strip()[:24]
+            u.dimension = dim if dim in dict(Unit.DIMENSION_CHOICES) else "other"
+            u.decimals = max(0, min(6, _to_int(request.POST.get("decimals"), 2)))
+            u.position = _to_int(request.POST.get("position"), 10)
             u.save()
             messages.success(request, "Maßeinheit gespeichert.")
             return redirect(f"{request.path}?tab=units")
@@ -734,25 +744,27 @@ def settings_page_view(request):
             st = get_object_or_404(Status, pk=request.POST.get("pk")) if action == "update_status" else Status()
             st.name = (request.POST.get("name") or "Status").strip()[:60]
             st.scope = (request.POST.get("scope") or "global").strip()[:32]
-            st.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            st.color_state = max(1, min(8, _to_int(request.POST.get("color_state"), 1)))
             st.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
-            st.position = int(request.POST.get("position") or 10)
+            st.position = _to_int(request.POST.get("position"), 10)
             st.is_final = bool(request.POST.get("is_final"))
             st.save()
             messages.success(request, "Status gespeichert.")
-            return redirect(f"{request.path}?tab=statuses")
+            ret_scope = (request.POST.get("return_scope") or "").strip()
+            return redirect(f"{request.path}?tab=statuses" + (f"&scope={ret_scope}" if ret_scope else ""))
 
         if action == "delete_status":
             Status.objects.filter(pk=request.POST.get("pk")).delete()
-            return redirect(f"{request.path}?tab=statuses")
+            ret_scope = (request.POST.get("return_scope") or "").strip()
+            return redirect(f"{request.path}?tab=statuses" + (f"&scope={ret_scope}" if ret_scope else ""))
 
         if action in ("create_role", "update_role"):
             rl = get_object_or_404(Role, pk=request.POST.get("pk")) if action == "update_role" else Role()
             rl.name = (request.POST.get("name") or "Rolle").strip()[:80]
             rl.category = _fk_or_none(Category, request.POST.get("category_id"))
-            rl.color_state = max(1, min(8, int(request.POST.get("color_state") or 1)))
+            rl.color_state = max(1, min(8, _to_int(request.POST.get("color_state"), 1)))
             rl.custom_color = (request.POST.get("custom_color") or "").strip()[:16] if request.POST.get("use_custom_color") else ""
-            rl.position = int(request.POST.get("position") or 10)
+            rl.position = _to_int(request.POST.get("position"), 10)
             rl.description = (request.POST.get("description") or "").strip()[:200]
             rl.save()
             messages.success(request, "Rolle gespeichert.")
@@ -786,9 +798,19 @@ def settings_page_view(request):
     if purpose_filter:
         cats = cats.filter(purpose=purpose_filter)
     scope_filter = request.GET.get("scope", "")
-    sts = Status.objects.all()
-    if scope_filter:
-        sts = sts.filter(scope=scope_filter)
+    status_scope_choices = [
+        ("global", "Global (überall verfügbar)"),
+        ("document", "Dokumente"),
+        ("person", "Personen & Adressen"),
+        ("contract", "Verträge"),
+        ("inventory", "Inventar"),
+        ("account", "Konten"),
+        ("asset", "Assets (Allgemein)"),
+    ]
+    scope_label_map = dict(status_scope_choices)
+    sts = list(Status.objects.filter(scope=scope_filter) if scope_filter else Status.objects.all())
+    for s in sts:
+        s.scope_label = scope_label_map.get(s.scope, s.scope)
 
     return render(
         request,
@@ -805,16 +827,9 @@ def settings_page_view(request):
             "scope_filter": scope_filter,
             "categories": cats,
             "units": Unit.objects.all(),
+            "unit_dimension_choices": Unit.DIMENSION_CHOICES,
             "statuses": sts,
-            "status_scope_choices": [
-                ("global", "Global (überall verfügbar)"),
-                ("document", "Dokumente"),
-                ("person", "Personen & Adressen"),
-                ("contract", "Verträge"),
-                ("inventory", "Inventar"),
-                ("account", "Konten"),
-                ("asset", "Assets (Allgemein)"),
-            ],
+            "status_scope_choices": status_scope_choices,
             "roles": Role.objects.select_related("category"),
             "role_categories": Category.for_purpose("person", "general"),
         },
