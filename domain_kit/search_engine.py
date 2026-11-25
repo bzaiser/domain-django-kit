@@ -306,6 +306,50 @@ def _search_domain_kit(request, q: str):
                     ],
                 })
 
+    if apps.is_installed("finance_kit") and mod_map.get("accounts", {}).get("can_read"):
+        scopes.append({"key": "finance_kit", "label": "Finanzen & Belege", "icon": "bi-cash-coin"})
+        if q:
+            try:
+                from finance_kit.models import BusinessDocument, DonationReceipt, LedgerEntry
+                fin_hits = []
+                for e in LedgerEntry.objects.filter(Q(description__icontains=q) | Q(receipt_number__icontains=q) | Q(person_name__icontains=q))[:20]:
+                    fin_hits.append({
+                        "title": f"{e.receipt_number or e.id}: {e.description}",
+                        "subtitle": f"{e.date:%d.%m.%Y} · {e.amount:.2f} €",
+                        "snippet": e.person_name or e.get_sphere_display(),
+                        "badge": e.get_entry_type_display(),
+                        "url": _safe_reverse("finance_kit:ledger", fallback="/finance/ledger/"),
+                        "url_label": "Zum Journal",
+                    })
+                for r in DonationReceipt.objects.filter(Q(donor_name__icontains=q) | Q(receipt_number__icontains=q))[:10]:
+                    fin_hits.append({
+                        "title": f"{r.receipt_number}: {r.donor_name}",
+                        "subtitle": f"{r.date_received:%d.%m.%Y} · {r.amount:.2f} €",
+                        "snippet": r.purpose_note,
+                        "badge": "Spendenquittung",
+                        "url": _safe_reverse("finance_kit:donations", fallback="/finance/donations/"),
+                        "url_label": "Zu Spenden",
+                    })
+                for bd in BusinessDocument.objects.filter(Q(doc_number__icontains=q) | Q(recipient_name__icontains=q) | Q(subject__icontains=q))[:10]:
+                    fin_hits.append({
+                        "title": f"{bd.doc_number}: {bd.subject}",
+                        "subtitle": f"{bd.recipient_name} · {bd.total_gross:.2f} €",
+                        "snippet": bd.notes,
+                        "badge": bd.get_doc_type_display(),
+                        "url": _safe_reverse("finance_kit:documents", fallback="/finance/documents/"),
+                        "url_label": "Zu Belegen",
+                    })
+                if fin_hits:
+                    groups.append({
+                        "key": "finance_kit",
+                        "label": "Finanzen & Belege",
+                        "icon": "bi-cash-coin",
+                        "state": 2,
+                        "hits": fin_hits,
+                    })
+            except Exception:
+                pass
+
     if mod_map.get("master_data", {}).get("can_read"):
         scopes.append({"key": "domain_master_data", "label": "Stammdaten", "icon": "bi-tags"})
         if q:

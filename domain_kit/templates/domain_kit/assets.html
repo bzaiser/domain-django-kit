@@ -71,8 +71,10 @@
         <strong>Assets — Verträge:</strong> Laufende Verträge, Lizenzen, Versicherungen und Wartungsvereinbarungen.
     {% elif active_tab == 'inventory' %}
         <strong>Assets — Inventar:</strong> Physische Bestände, Hardware, Werkzeuge und Standorte.
+        {% if has_finance_kit %}<a href="/finance/afa/" class="btn btn-sm btn-outline-primary rounded-pill ms-2 py-0">Anlagenverzeichnis (AfA)</a>{% endif %}
     {% elif active_tab == 'account' %}
         <strong>Assets — Konten:</strong> Bankkonten, Rücklagen, Depots und aktuelle Salden.
+        {% if has_finance_kit %}<a href="/finance/ledger/" class="btn btn-sm btn-outline-primary rounded-pill ms-2 py-0">Buchungsjournal öffnen</a>{% endif %}
     {% endif %}
 </div>
 
@@ -204,7 +206,7 @@
                     <td>{% if a.category %}<span class="badge" style="background: var(--theme-state-{{ a.category.color_state }}, var(--app-primary));">{{ a.category.name }}</span>{% else %}—{% endif %}</td>
                     <td>{% if a.status %}<span class="badge" style="background: var(--theme-state-{{ a.status.color_state }}, var(--app-primary));">{{ a.status.name }}</span>{% else %}—{% endif %}</td>
                     <td class="small">{{ a.person.full_name|default:"—" }}{% if a.institution %} · {{ a.institution }}{% endif %}</td>
-                    <td class="fw-bold">{{ a.quantity }} {{ a.unit.symbol|default:"" }}</td>
+                    <td class="fw-bold">{{ a.quantity }} {{ a.unit.symbol|default:"" }}{% if a.live_balance is not None %} <span class="badge text-bg-info ms-1">Aktuell: {{ a.live_balance|floatformat:2 }} €</span>{% endif %}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#assetViewModal-{{ a.id }}"><i class="bi bi-eye"></i></button>
                         {% if can_write %}

@@ -79,7 +79,7 @@ def _save_document_from_request(request, doc: Document, default_topic: str = "ge
         raw_title = uploaded.name
     doc.title = (raw_title or "Dokument")[:160]
     tp = request.POST.get("topic", default_topic)
-    valid_topics = allowed_topics or ("person", "asset", "contract", "inventory", "account", "general")
+    valid_topics = allowed_topics or ("person", "asset", "contract", "inventory", "account", "finance", "general")
     doc.topic = tp if tp in valid_topics else default_topic
     if uploaded:
         doc.file = uploaded
@@ -431,6 +431,20 @@ def assets_page_view(request):
     sum_inventory = inventory.aggregate(s=Sum("quantity"))["s"] or Decimal("0.00")
     sum_accounts = accounts.aggregate(s=Sum("quantity"))["s"] or Decimal("0.00")
 
+    has_finance_kit = False
+    all_assets_list = list(all_assets)
+    try:
+        from django.apps import apps as dj_apps
+        if dj_apps.is_installed("finance_kit"):
+            from finance_kit.services import get_account_balances
+            has_finance_kit = True
+            bal_map = {r["ref"]: r["balance"] for r in get_account_balances()}
+            for a in all_assets_list:
+                if a.asset_type == "account":
+                    a.live_balance = bal_map.get(f"account:{a.id}")
+    except Exception:
+        pass
+
     chart_payload = json.dumps({
         "overview_labels": ["Verträge", "Inventar", "Konten"],
         "overview_counts": [contracts.count(), inventory.count(), accounts.count()],
@@ -449,7 +463,8 @@ def assets_page_view(request):
         {
             "active_tab": active_tab,
             "can_write": can_write,
-            "all_assets": all_assets,
+            "all_assets": all_assets_list,
+            "has_finance_kit": has_finance_kit,
             "contracts": contracts,
             "inventory": inventory,
             "accounts": accounts,
@@ -504,7 +519,7 @@ def documents_page_view(request):
             return redirect("domain_kit:documents")
 
     docs = Document.objects.select_related("category", "status", "person", "asset", "unit")
-    if topic_filter in ("person", "asset", "contract", "inventory", "account", "general"):
+    if topic_filter in ("person", "asset", "contract", "inventory", "account", "finance", "general"):
         docs = docs.filter(topic=topic_filter)
     category_filter = (request.GET.get("category") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
@@ -805,6 +820,7 @@ def settings_page_view(request):
         ("contract", "Verträge"),
         ("inventory", "Inventar"),
         ("account", "Konten"),
+        ("finance", "Finanzen & Buchhaltung"),
         ("asset", "Assets (Allgemein)"),
     ]
     scope_label_map = dict(status_scope_choices)

@@ -22,6 +22,7 @@
     <li class="nav-item"><a class="nav-link {% if topic_filter == 'contract' %}active{% endif %}" href="?topic=contract">Verträge</a></li>
     <li class="nav-item"><a class="nav-link {% if topic_filter == 'inventory' %}active{% endif %}" href="?topic=inventory">Inventar</a></li>
     <li class="nav-item"><a class="nav-link {% if topic_filter == 'account' %}active{% endif %}" href="?topic=account">Konten</a></li>
+    <li class="nav-item"><a class="nav-link {% if topic_filter == 'finance' %}active{% endif %}" href="?topic=finance">Finanzen</a></li>
     <li class="nav-item"><a class="nav-link {% if topic_filter == 'general' %}active{% endif %}" href="?topic=general">Allgemein</a></li>
 </ul>
 
@@ -146,6 +147,7 @@
                             <option value="contract" {% if d.topic == 'contract' %}selected{% endif %}>Verträge</option>
                             <option value="inventory" {% if d.topic == 'inventory' %}selected{% endif %}>Inventar</option>
                             <option value="account" {% if d.topic == 'account' %}selected{% endif %}>Konten</option>
+                            <option value="finance" {% if d.topic == 'finance' %}selected{% endif %}>Finanzen &amp; Belege</option>
                             <option value="asset" {% if d.topic == 'asset' %}selected{% endif %}>Assets (Allgemein)</option>
                         </select>
                     </div>

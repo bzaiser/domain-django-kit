@@ -30,6 +30,7 @@ PURPOSE_CHOICES = [
     ("contract", "Vertrag"),
     ("inventory", "Inventar"),
     ("account", "Konto"),
+    ("finance", "Finanzen / Buchhaltung"),
     ("document", "Dokument"),
     ("list", "Listen & Vorlagen"),
     ("general", "Allgemein"),
@@ -348,6 +349,7 @@ class Document(models.Model):
         ("contract", "Verträge"),
         ("inventory", "Inventar"),
         ("account", "Konten"),
+        ("finance", "Finanzen & Belege"),
         ("general", "Allgemein"),
     ]
     title = models.CharField(max_length=160)
