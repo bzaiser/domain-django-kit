@@ -264,25 +264,14 @@
                         <label class="form-label small">Kategorie</label>
                         <select name="category_id" id="assetCreateCategory" class="form-select">
                             <option value="">—</option>
-                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract">{{ c.name }}</option>{% endfor %}
-                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory">{{ c.name }}</option>{% endfor %}
-                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account">{{ c.name }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small">Kategorie</label>
-                        <select name="category_id" class="form-select ds-asset-cat-sel">
-                            <option value="">—</option>
-                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in all_asset_categories %}<option value="{{ c.id }}" data-purpose="{{ c.purpose }}">{{ c.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Status</label>
-                        <select name="status_id" class="form-select">
+                        <select name="status_id" id="assetCreateStatus" class="form-select">
                             <option value="">—</option>
-                            {% for s in statuses %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            {% for s in statuses %}<option value="{{ s.id }}" data-scope="{{ s.scope }}">{{ s.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -306,30 +295,38 @@
 {% include "domain_kit/includes/doc_upload_modal.html" with modal_id="assetDocCreateModal" modal_title="Asset-Dokument hochladen" show_topic_select=True asset_topics_only=True show_asset_select=True %}
 <script>
 (function () {
-    function syncPair(typeSel, catSel) {
-        if (!typeSel || !catSel) return;
-        var t = typeSel.value;
+    function filterOptions(sel, attr, allowed) {
+        if (!sel) return;
         var keepSel = true;
-        catSel.querySelectorAll('option[data-purpose]').forEach(function (opt) {
-            var match = opt.dataset.purpose === t;
+        sel.querySelectorAll('option[data-' + attr + ']').forEach(function (opt) {
+            var val = opt.getAttribute('data-' + attr);
+            var match = allowed.indexOf(val) !== -1;
             opt.hidden = !match;
             opt.disabled = !match;
             if (!match && opt.selected) keepSel = false;
         });
-        if (!keepSel) catSel.value = '';
+        if (!keepSel) sel.value = '';
+    }
+    function syncPair(typeSel, catSel, statusSel) {
+        if (!typeSel) return;
+        var t = typeSel.value === 'resource' ? 'inventory' : typeSel.value;
+        filterOptions(catSel, 'purpose', [t, 'asset', 'general']);
+        filterOptions(statusSel, 'scope', [t, 'asset', 'global', 'general']);
     }
     var typeSel = document.getElementById('assetCreateType');
     var catSel = document.getElementById('assetCreateCategory');
-    if (typeSel && catSel) {
-        typeSel.addEventListener('change', function () { syncPair(typeSel, catSel); });
-        syncPair(typeSel, catSel);
+    var statusSel = document.getElementById('assetCreateStatus');
+    if (typeSel) {
+        typeSel.addEventListener('change', function () { syncPair(typeSel, catSel, statusSel); });
+        syncPair(typeSel, catSel, statusSel);
     }
     document.querySelectorAll('.ds-asset-type-sel').forEach(function (tSel) {
         var form = tSel.closest('form');
         var cSel = form ? form.querySelector('.ds-asset-cat-sel') : null;
-        if (cSel) {
-            tSel.addEventListener('change', function () { syncPair(tSel, cSel); });
-            syncPair(tSel, cSel);
+        var sSel = form ? form.querySelector('.ds-asset-status-sel') : null;
+        if (cSel || sSel) {
+            tSel.addEventListener('change', function () { syncPair(tSel, cSel, sSel); });
+            syncPair(tSel, cSel, sSel);
         }
     });
 })();
@@ -385,16 +382,14 @@
                         <label class="form-label small">Kategorie</label>
                         <select name="category_id" class="form-select ds-asset-cat-sel">
                             <option value="">—</option>
-                            {% for c in contract_categories %}<option value="{{ c.id }}" data-purpose="contract" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-                            {% for c in inventory_categories %}<option value="{{ c.id }}" data-purpose="inventory" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-                            {% for c in account_categories %}<option value="{{ c.id }}" data-purpose="account" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            {% for c in all_asset_categories %}<option value="{{ c.id }}" data-purpose="{{ c.purpose }}" {% if a.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Status</label>
-                        <select name="status_id" class="form-select">
+                        <select name="status_id" class="form-select ds-asset-status-sel">
                             <option value="">—</option>
-                            {% for s in statuses %}<option value="{{ s.id }}" {% if a.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                            {% for s in statuses %}<option value="{{ s.id }}" data-scope="{{ s.scope }}" {% if a.status_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">

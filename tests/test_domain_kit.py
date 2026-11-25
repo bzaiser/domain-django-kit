@@ -552,6 +552,19 @@ class DomainKitTests(TestCase):
         self.assertEqual(doc.topic, "contract")
         self.assertTrue(doc.is_expired)
 
+    def test_asset_modal_single_category_and_scope_attributes(self):
+        self.client.force_login(self.admin)
+        Category.objects.create(name="AllgemeinAssetCat", purpose="asset")
+        Status.objects.create(name="Lagernd", scope="inventory")
+        resp = self.client.get("/domain/assets/")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        self.assertEqual(html.count('id="assetCreateCategory"'), 1)
+        create_cat_block = html.split('id="assetCreateCategory"', 1)[1].split("</select>", 1)[0]
+        self.assertEqual(create_cat_block.count("AllgemeinAssetCat"), 1)
+        self.assertIn('data-purpose="asset"', create_cat_block)
+        self.assertIn('data-scope="inventory"', html)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner
