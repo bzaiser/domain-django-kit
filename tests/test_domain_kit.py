@@ -663,6 +663,7 @@ class DomainKitTests(TestCase):
         self.assertEqual(r.status_code, 302)
         p = Person.objects.get(first_name="Sabine", last_name="Schreiber")
         self.assertIsNotNone(p.user)
+        self.assertEqual(p.user.username, "sabine.schreiber")
         self.assertFalse(p.user.is_staff)
         self.assertTrue(p.user.check_password("StartPw123!"))
         self.assertTrue(p.user.groups.filter(pk=grp_schrift.id).exists())

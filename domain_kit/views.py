@@ -213,7 +213,9 @@ def persons_page_view(request):
                     raw_un = (request.POST.get("new_username") or f"{person.first_name}.{person.last_name}").strip()
                     for src, dst in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss"), ("Ä", "ae"), ("Ö", "oe"), ("Ü", "ue")):
                         raw_un = raw_un.replace(src, dst)
-                    base_un = slugify(raw_un).replace("-", ".") or "mitglied"
+                    base_un = slugify(raw_un.replace(".", "-")).replace("-", ".").strip(".") or "mitglied"
+                    while ".." in base_un:
+                        base_un = base_un.replace("..", ".")
                     uname = base_un[:30]
                     idx = 2
                     while User.objects.filter(username=uname).exists():
