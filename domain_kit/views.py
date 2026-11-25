@@ -914,6 +914,20 @@ def self_service_profile_view(request):
         .prefetch_related("roles", "addresses")
         .first()
     )
+    if person is None:
+        cand = None
+        if request.user.email:
+            cand = Person.objects.filter(user__isnull=True, email__iexact=request.user.email).first()
+        if cand is None and request.user.first_name and request.user.last_name:
+            cand = Person.objects.filter(
+                user__isnull=True,
+                first_name__iexact=request.user.first_name,
+                last_name__iexact=request.user.last_name,
+            ).first()
+        if cand is not None:
+            cand.user = request.user
+            cand.save(update_fields=["user"])
+            person = cand
     if request.method == "POST":
         if not person:
             messages.error(request, "Ihrem Benutzerkonto ist noch kein Personenprofil zugeordnet.")
