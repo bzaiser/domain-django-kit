@@ -565,6 +565,21 @@ class DomainKitTests(TestCase):
         self.assertIn('data-purpose="asset"', create_cat_block)
         self.assertIn('data-scope="inventory"', html)
 
+    def test_person_modal_uses_person_purpose_and_scope_only(self):
+        self.client.force_login(self.admin)
+        Category.objects.create(name="MitgliedCat", purpose="person")
+        Category.objects.create(name="VertragOnlyCat", purpose="contract")
+        Status.objects.create(name="AktivPerson", scope="person")
+        Status.objects.create(name="NurDokumentStatus", scope="document")
+        resp = self.client.get("/domain/persons/")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        person_modal = html.split('id="personCreateModal"', 1)[1].split("</form>", 1)[0]
+        self.assertIn("MitgliedCat", person_modal)
+        self.assertNotIn("VertragOnlyCat", person_modal)
+        self.assertIn("AktivPerson", person_modal)
+        self.assertNotIn("NurDokumentStatus", person_modal)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner
