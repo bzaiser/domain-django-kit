@@ -197,7 +197,55 @@ def persons_page_view(request):
             role_ids = [int(r) for r in request.POST.getlist("role_ids") if str(r).isdigit()]
             if role_ids or "role_ids_present" in request.POST:
                 person.roles.set(Role.objects.filter(pk__in=role_ids))
-            messages.success(request, "Person gespeichert.")
+
+            can_logins = (
+                request.user.is_superuser
+                or request.user.is_staff
+                or request.user.groups.filter(name__in=("Leitung / Vorstand", "Vorstand", "Personalverantwortlicher")).exists()
+            )
+            created_login_info = ""
+            if can_logins:
+                User = get_user_model()
+                if request.POST.get("create_login") == "1" and person.user is None:
+                    from django.utils.crypto import get_random_string
+                    from django.utils.text import slugify
+
+                    raw_un = (request.POST.get("new_username") or f"{person.first_name}.{person.last_name}").strip()
+                    for src, dst in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss"), ("Ä", "ae"), ("Ö", "oe"), ("Ü", "ue")):
+                        raw_un = raw_un.replace(src, dst)
+                    base_un = slugify(raw_un).replace("-", ".") or "mitglied"
+                    uname = base_un[:30]
+                    idx = 2
+                    while User.objects.filter(username=uname).exists():
+                        uname = f"{base_un[:25]}{idx}"
+                        idx += 1
+                    raw_pw = (request.POST.get("new_password") or "").strip() or get_random_string(10)
+                    u = User.objects.create_user(
+                        username=uname,
+                        email=person.email,
+                        password=raw_pw,
+                        first_name=person.first_name[:30],
+                        last_name=person.last_name[:30],
+                        is_staff=False,
+                    )
+                    person.user = u
+                    person.save(update_fields=["user"])
+                    created_login_info = f" · Login „{uname}“ (Start-Passwort: {raw_pw})"
+                elif person.user is not None:
+                    u = person.user
+                    new_pw = (request.POST.get("new_password") or "").strip()
+                    if new_pw:
+                        u.set_password(new_pw)
+                        u.save(update_fields=["password"])
+                    if "user_active_present" in request.POST and u.id != request.user.id and not u.is_superuser:
+                        u.is_active = bool(request.POST.get("user_is_active"))
+                        u.save(update_fields=["is_active"])
+
+                if person.user is not None and "auth_group_ids_present" in request.POST and not person.user.is_superuser:
+                    gids = [int(g) for g in request.POST.getlist("auth_group_ids") if str(g).isdigit()]
+                    person.user.groups.set(Group.objects.filter(pk__in=gids))
+
+            messages.success(request, f"Person gespeichert.{created_login_info}")
             return redirect(f"{request.path}?tab=persons")
 
         if action == "delete_person":
@@ -315,6 +363,12 @@ def persons_page_view(request):
             "roles": Role.objects.all(),
             "units": Unit.objects.all(),
             "auth_users": get_user_model().objects.order_by("username"),
+            "auth_groups": Group.objects.all().order_by("name"),
+            "can_manage_logins": (
+                request.user.is_superuser
+                or request.user.is_staff
+                or request.user.groups.filter(name__in=("Leitung / Vorstand", "Vorstand", "Personalverantwortlicher")).exists()
+            ),
             "kpi_persons_total": persons.count(),
             "kpi_roles_total": Role.objects.count(),
             "kpi_addresses_total": addresses.count(),

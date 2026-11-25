@@ -646,6 +646,45 @@ class DomainKitTests(TestCase):
         self.assertContains(st_page, "Personen &amp; Adressen")
         self.assertTrue(Status.objects.get(name="Abgeschlossen").is_final)
 
+    def test_person_create_login_password_and_groups_without_admin(self):
+        self.client.force_login(self.admin)
+        grp_schrift, _ = Group.objects.get_or_create(name="Schriftführer")
+        grp_mitgl, _ = Group.objects.get_or_create(name="Mitglied / Portal")
+        r = self.client.post("/domain/persons/", {
+            "action": "create_person",
+            "first_name": "Sabine",
+            "last_name": "Schreiber",
+            "email": "sabine@example.org",
+            "create_login": "1",
+            "new_password": "StartPw123!",
+            "auth_group_ids_present": "1",
+            "auth_group_ids": [str(grp_schrift.id)],
+        })
+        self.assertEqual(r.status_code, 302)
+        p = Person.objects.get(first_name="Sabine", last_name="Schreiber")
+        self.assertIsNotNone(p.user)
+        self.assertFalse(p.user.is_staff)
+        self.assertTrue(p.user.check_password("StartPw123!"))
+        self.assertTrue(p.user.groups.filter(pk=grp_schrift.id).exists())
+
+        r_upd = self.client.post("/domain/persons/", {
+            "action": "update_person",
+            "pk": str(p.id),
+            "first_name": "Sabine",
+            "last_name": "Schreiber",
+            "user_id": str(p.user.id),
+            "new_password": "NewPw456!",
+            "user_active_present": "1",
+            "auth_group_ids_present": "1",
+            "auth_group_ids": [str(grp_mitgl.id)],
+        })
+        self.assertEqual(r_upd.status_code, 302)
+        p.user.refresh_from_db()
+        self.assertFalse(p.user.is_active)
+        self.assertTrue(p.user.check_password("NewPw456!"))
+        self.assertFalse(p.user.groups.filter(pk=grp_schrift.id).exists())
+        self.assertTrue(p.user.groups.filter(pk=grp_mitgl.id).exists())
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner
