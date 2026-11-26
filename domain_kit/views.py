@@ -367,7 +367,11 @@ def persons_page_view(request):
             "person_categories": Category.for_purpose("person", "general"),
             "address_categories": Category.for_purpose("address", "location", "general"),
             "doc_categories": Category.for_purpose("document", "general"),
-            "person_statuses": Status.for_scope("person"),
+            "person_statuses": (
+                Status.objects.filter(scope="person").order_by("position", "id")
+                if Status.objects.filter(scope="person").exists()
+                else Status.for_scope("person")
+            ),
             "statuses": Status.for_scope("document"),
             "roles": Role.objects.all(),
             "units": Unit.objects.all(),

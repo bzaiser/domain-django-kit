@@ -125,7 +125,12 @@
                     <td>
                         {% if p.status %}
                         <span class="badge" style="{{ p.status.badge_style }}">{{ p.status.name }}</span>
-                        {% else %}—{% endif %}
+                        {% endif %}
+                        {% if p.is_public %}
+                        <span class="badge text-bg-success" title="Auf öffentlicher Webseite sichtbar"><i class="bi bi-globe2 me-1"></i>Online</span>
+                        {% else %}
+                        <span class="badge bg-body-secondary text-body-secondary border" title="Nur intern sichtbar"><i class="bi bi-lock me-1"></i>Intern</span>
+                        {% endif %}
                     </td>
                     <td>{{ p.responsible_person.full_name|default:"—" }}</td>
                     <td class="small">{{ p.email|default:p.phone|default:"—" }}</td>
