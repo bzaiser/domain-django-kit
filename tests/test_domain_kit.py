@@ -686,6 +686,51 @@ class DomainKitTests(TestCase):
         self.assertFalse(p.user.groups.filter(pk=grp_schrift.id).exists())
         self.assertTrue(p.user.groups.filter(pk=grp_mitgl.id).exists())
 
+    def test_user_id_link_requires_can_logins_and_blocks_superuser_escalation(self):
+        from django.contrib.auth.models import Group
+        from domain_kit.models import DomainGroupPermission, Person
+        User = get_user_model()
+        su = User.objects.create_superuser(username="su_target", email="su@example.com", password="pw")
+        grp_hr, _ = Group.objects.get_or_create(name="Schriftführer")
+        DomainGroupPermission.objects.update_or_create(
+            group=grp_hr,
+            module_key="persons",
+            defaults={"access_level": "write"},
+        )
+        writer = User.objects.create_user(username="writer_only", password="pw", is_staff=False)
+        writer.groups.add(grp_hr)
+        target_p = Person.objects.create(first_name="Target", last_name="Person")
+
+        self.client.force_login(writer)
+        self.client.post("/domain/persons/", {
+            "action": "update_person",
+            "pk": str(target_p.id),
+            "first_name": "Target",
+            "last_name": "Person",
+            "user_id": str(su.id),
+        })
+        target_p.refresh_from_db()
+        self.assertIsNone(target_p.user)
+
+        grp_board, _ = Group.objects.get_or_create(name="Leitung / Vorstand")
+        DomainGroupPermission.objects.update_or_create(
+            group=grp_board,
+            module_key="persons",
+            defaults={"access_level": "write"},
+        )
+        board = User.objects.create_user(username="board_mgr", password="pw", is_staff=False)
+        board.groups.add(grp_board)
+        self.client.force_login(board)
+        self.client.post("/domain/persons/", {
+            "action": "update_person",
+            "pk": str(target_p.id),
+            "first_name": "Target",
+            "last_name": "Person",
+            "user_id": str(su.id),
+        })
+        target_p.refresh_from_db()
+        self.assertIsNone(target_p.user)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

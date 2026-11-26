@@ -189,8 +189,6 @@ def persons_page_view(request):
             person.category = _fk_or_none(Category, request.POST.get("category_id"))
             person.status = _fk_or_none(Status, request.POST.get("status_id"))
             person.responsible_person = _fk_or_none(Person, request.POST.get("responsible_id"))
-            if "user_id" in request.POST:
-                person.user = _fk_or_none(get_user_model(), request.POST.get("user_id"))
             person.notes = (request.POST.get("notes") or "").strip()
             person.bio = (request.POST.get("bio") or "").strip()
             person.save()
@@ -206,6 +204,11 @@ def persons_page_view(request):
             created_login_info = ""
             if can_logins:
                 User = get_user_model()
+                if "user_id" in request.POST:
+                    target_u = _fk_or_none(User, request.POST.get("user_id"))
+                    if target_u is None or request.user.is_superuser or not target_u.is_superuser:
+                        person.user = target_u
+                        person.save(update_fields=["user"])
                 if request.POST.get("create_login") == "1" and person.user is None:
                     from django.utils.crypto import get_random_string
                     from django.utils.text import slugify

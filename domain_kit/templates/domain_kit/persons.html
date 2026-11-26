@@ -371,9 +371,11 @@
                     <div class="col-md-6"><label class="form-label small">Website</label><input type="url" name="website" class="form-control" value="{{ p.website }}" placeholder="https://..."></div>
                     <div class="col-md-6"><label class="form-label small">Steuer-/USt-ID</label><input type="text" name="tax_id" class="form-control" value="{{ p.tax_id }}"></div>
                     <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="editPub-{{ p.id }}" {% if p.is_public %}checked{% endif %}>
-                            <label class="form-check-label small fw-semibold" for="editPub-{{ p.id }}"><i class="bi bi-globe2 me-1 text-primary"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte)</label>
+                        <div class="ds-risk-public">
+                            <div class="form-check m-0">
+                                <input class="form-check-input" type="checkbox" name="is_public" value="1" id="editPub-{{ p.id }}" {% if p.is_public %}checked{% endif %}>
+                                <label class="form-check-label small fw-semibold" for="editPub-{{ p.id }}"><i class="bi bi-globe2 me-1 text-warning-emphasis"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte) <span class="badge text-bg-warning ms-1">Öffentlich im Internet</span></label>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -398,15 +400,19 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small">Rollen</label>
+                        <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
                         <select name="role_ids" class="form-select" multiple>
                             {% for r in roles %}<option value="{{ r.id }}" {% if r in p.roles.all %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
                         </select>
+                        <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
-                        <div class="border rounded-3 p-2 bg-body-tertiary">
-                            <div class="fw-semibold small mb-2"><i class="bi bi-shield-lock me-1 text-primary"></i>App-Zugang &amp; Berechtigungen</div>
+                        <div class="p-2 ds-risk-security">
+                            <div class="fw-semibold small mb-2 text-danger-emphasis d-flex flex-wrap align-items-center gap-2">
+                                <span><i class="bi bi-shield-exclamation me-1"></i>App-Zugang &amp; Berechtigungen</span>
+                                <span class="badge text-bg-danger">Sicherheitsrelevant — steuert Zugriff</span>
+                            </div>
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label small">Verknüpftes Konto</label>
@@ -444,7 +450,7 @@
                                         {% for g in auth_groups %}
                                         <label class="form-check form-check-inline small m-0">
                                             <input type="checkbox" name="auth_group_ids" value="{{ g.id }}" class="form-check-input" {% if p.user and g in p.user.groups.all %}checked{% endif %}>
-                                            <span class="form-check-label">{{ g.name }}</span>
+                                            <span class="form-check-label">{{ g.name }}{% if g.name == "Leitung / Vorstand" or g.name == "Buchhaltung / Kassierer" or g.name == "Personalverantwortlicher" or g.name == "Vorstand" %} <i class="bi bi-shield-lock-fill text-danger" title="Erhöhte Berechtigungen"></i>{% endif %}</span>
                                         </label>
                                         {% endfor %}
                                     </div>
@@ -555,9 +561,11 @@
                     <div class="col-md-6"><label class="form-label small">Website</label><input type="url" name="website" class="form-control" placeholder="https://..."></div>
                     <div class="col-md-6"><label class="form-label small">Steuer-/USt-ID</label><input type="text" name="tax_id" class="form-control"></div>
                     <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="newPersonPublic">
-                            <label class="form-check-label small fw-semibold" for="newPersonPublic"><i class="bi bi-globe2 me-1 text-primary"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte)</label>
+                        <div class="ds-risk-public">
+                            <div class="form-check m-0">
+                                <input class="form-check-input" type="checkbox" name="is_public" value="1" id="newPersonPublic">
+                                <label class="form-check-label small fw-semibold" for="newPersonPublic"><i class="bi bi-globe2 me-1 text-warning-emphasis"></i>Öffentlich auf Webseite (z. B. Vorstand / Kontakte) <span class="badge text-bg-warning ms-1">Öffentlich im Internet</span></label>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -582,15 +590,19 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small">Rollen</label>
+                        <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
                         <select name="role_ids" class="form-select" multiple>
                             {% for r in roles %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
                         </select>
+                        <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
-                        <div class="border rounded-3 p-2 bg-body-tertiary">
-                            <div class="fw-semibold small mb-2"><i class="bi bi-shield-lock me-1 text-primary"></i>App-Zugang &amp; Berechtigungen (optional)</div>
+                        <div class="p-2 ds-risk-security">
+                            <div class="fw-semibold small mb-2 text-danger-emphasis d-flex flex-wrap align-items-center gap-2">
+                                <span><i class="bi bi-shield-exclamation me-1"></i>App-Zugang &amp; Berechtigungen (optional)</span>
+                                <span class="badge text-bg-danger">Sicherheitsrelevant — steuert Zugriff</span>
+                            </div>
                             <div class="row g-2">
                                 <div class="col-md-6 d-flex align-items-center">
                                     <div class="form-check">
@@ -607,7 +619,7 @@
                                         {% for g in auth_groups %}
                                         <label class="form-check form-check-inline small m-0">
                                             <input type="checkbox" name="auth_group_ids" value="{{ g.id }}" class="form-check-input">
-                                            <span class="form-check-label">{{ g.name }}</span>
+                                            <span class="form-check-label">{{ g.name }}{% if g.name == "Leitung / Vorstand" or g.name == "Buchhaltung / Kassierer" or g.name == "Personalverantwortlicher" or g.name == "Vorstand" %} <i class="bi bi-shield-lock-fill text-danger" title="Erhöhte Berechtigungen"></i>{% endif %}</span>
                                         </label>
                                         {% endfor %}
                                     </div>
