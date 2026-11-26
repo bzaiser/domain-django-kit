@@ -46,14 +46,45 @@ def get_module_access(user, module_key: str) -> str:
 
 
 def get_user_module_map(user) -> dict:
+    cached = getattr(user, "_domain_module_map_cache", None) if user is not None else None
+    if isinstance(cached, dict):
+        return cached
+    solo = DomainModuleSettings.get_solo()
+    is_auth = bool(user and getattr(user, "is_authenticated", False))
+    is_admin = bool(is_auth and (getattr(user, "is_superuser", False) or getattr(user, "is_staff", False)))
+    best_by_mod = {}
+    has_any_rules = None
+    group_ids = []
+    if is_auth and not is_admin:
+        group_ids = list(user.groups.values_list("id", flat=True))
+        if group_ids:
+            for mod_key, lvl in DomainGroupPermission.objects.filter(group_id__in=group_ids).values_list("module_key", "access_level"):
+                prev = best_by_mod.get(mod_key, "none")
+                if LEVEL_RANK.get(lvl, 0) > LEVEL_RANK.get(prev, 0):
+                    best_by_mod[mod_key] = lvl
+        else:
+            has_any_rules = DomainGroupPermission.objects.exists()
+
     result = {}
     for key in ALL_MODULES:
-        lvl = get_module_access(user, key)
+        if not solo.is_module_enabled(key) or not is_auth:
+            lvl = "none"
+        elif is_admin:
+            lvl = "write"
+        elif not group_ids:
+            lvl = "none" if has_any_rules else "write"
+        else:
+            lvl = best_by_mod.get(key, "none")
         result[key] = {
             "level": lvl,
             "can_read": LEVEL_RANK.get(lvl, 0) >= 1,
             "can_write": LEVEL_RANK.get(lvl, 0) >= 2,
         }
+    if user is not None:
+        try:
+            setattr(user, "_domain_module_map_cache", result)
+        except Exception:
+            pass
     return result
 
 
