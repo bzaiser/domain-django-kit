@@ -1,9 +1,9 @@
-<div class="dropdown ds-multiselect" data-placeholder="— Rollen auswählen —">
+<div class="dropdown ds-multiselect" data-placeholder="— Ämter / Tätigkeiten auswählen —">
     <button class="form-select text-start text-truncate" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-        <span class="ds-multiselect-label text-muted">— Rollen auswählen —</span>
+        <span class="ds-multiselect-label text-muted">— Ämter / Tätigkeiten auswählen —</span>
     </button>
     <div class="dropdown-menu w-100 p-2 shadow-sm">
-        <input type="search" class="form-control form-control-sm mb-2 ds-multiselect-search" placeholder="Rolle suchen...">
+        <input type="search" class="form-control form-control-sm mb-2 ds-multiselect-search" placeholder="Amt / Tätigkeit suchen...">
         <div class="d-flex flex-column gap-1" style="max-height: 220px; overflow-y: auto;">
             {% for r in roles %}
             <label class="form-check d-flex align-items-center gap-2 px-2 py-1 rounded ds-multiselect-item m-0" data-search="{{ r.name }}" style="cursor: pointer;">
@@ -12,7 +12,7 @@
                 <span class="form-check-label small flex-grow-1">{{ r.name }}</span>
             </label>
             {% empty %}
-            <div class="small text-muted px-2 py-1">Keine Rollen vorhanden.</div>
+            <div class="small text-muted px-2 py-1">Keine Ämter / Tätigkeiten vorhanden.</div>
             {% endfor %}
         </div>
     </div>

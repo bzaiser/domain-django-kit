@@ -67,7 +67,7 @@
             <input type="hidden" name="tab" value="persons">
             <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Suchen..." class="form-control form-control-sm" style="width: 150px;">
             <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
-                <option value="">Alle Kategorien</option>
+                <option value="">Alle Personengruppen</option>
                 {% for c in person_categories %}<option value="{{ c.id }}" {% if category_filter == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
             </select>
             <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
@@ -88,8 +88,8 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Kategorie (Zweck)</th>
-                    <th>Rollen</th>
+                    <th>Personengruppe <i class="bi bi-info-circle text-muted ms-1" title="Wer ist diese Person? (z. B. Mitglied, Externer — für Listen-Filter &amp; Webseite)"></i></th>
+                    <th>Ämter / Tätigkeiten <i class="bi bi-info-circle text-muted ms-1" title="Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte)"></i></th>
                     <th>Status</th>
                     <th>Verantwortlich</th>
                     <th>Kontakt</th>
@@ -277,7 +277,7 @@
                     </div>
                 </div>
                 <div class="row g-2">
-                    <div class="col-md-6"><strong>Kategorie:</strong> {{ p.category.name|default:"—" }}</div>
+                    <div class="col-md-6"><strong>Personengruppe:</strong> {{ p.category.name|default:"—" }}</div>
                     <div class="col-md-6"><strong>Status:</strong> {{ p.status.name|default:"—" }}</div>
                     <div class="col-md-6"><strong>E-Mail:</strong> {{ p.email|default:"—" }}</div>
                     <div class="col-md-6"><strong>Telefon / Mobil:</strong> {{ p.phone|default:"—" }} / {{ p.mobile|default:"—" }}</div>
@@ -379,11 +379,12 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small">Kategorie (Zweck: Person)</label>
+                        <label class="form-label small">Personengruppe</label>
                         <select name="category_id" class="form-select">
                             <option value="">—</option>
                             {% for c in person_categories %}<option value="{{ c.id }}" {% if p.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
                         </select>
+                        <div class="form-text small">Wer ist diese Person? (z. B. Mitglied, Externer — für Listen-Filter &amp; Webseite)</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Status</label>
@@ -400,9 +401,9 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
+                        <label class="form-label small">Ämter / Tätigkeiten <span class="text-muted">(nur fachlich)</span></label>
                         {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=p.roles.all %}
-                        <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
+                        <div class="form-text small">Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
@@ -443,7 +444,8 @@
                                 {% endif %}
                                 <div class="col-12">
                                     <input type="hidden" name="auth_group_ids_present" value="1">
-                                    <label class="form-label small d-block mb-1">App-Berechtigungen (Gruppen)</label>
+                                    <label class="form-label small d-block mb-1">App-Zugriffsrechte (Login-Rollen)</label>
+                                    <div class="form-text small mb-1">Steuert, was diese Person nach dem Login in der App sieht &amp; darf.</div>
                                     <div class="d-flex flex-wrap gap-2">
                                         {% for g in auth_groups %}
                                         <label class="form-check form-check-inline small m-0">
@@ -567,11 +569,12 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small">Kategorie (Zweck: Person)</label>
+                        <label class="form-label small">Personengruppe</label>
                         <select name="category_id" class="form-select">
                             <option value="">—</option>
                             {% for c in person_categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
                         </select>
+                        <div class="form-text small">Wer ist diese Person? (z. B. Mitglied, Externer — für Listen-Filter &amp; Webseite)</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Status</label>
@@ -588,9 +591,9 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
+                        <label class="form-label small">Ämter / Tätigkeiten <span class="text-muted">(nur fachlich)</span></label>
                         {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=None %}
-                        <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
+                        <div class="form-text small">Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
@@ -610,7 +613,8 @@
                                 <div class="col-md-6"><input type="text" name="new_password" class="form-control form-control-sm" placeholder="Start-Passwort (leer = Zufall)"></div>
                                 <div class="col-12">
                                     <input type="hidden" name="auth_group_ids_present" value="1">
-                                    <label class="form-label small d-block mb-1">App-Berechtigungen (Gruppen)</label>
+                                    <label class="form-label small d-block mb-1">App-Zugriffsrechte (Login-Rollen)</label>
+                                    <div class="form-text small mb-1">Steuert, was diese Person nach dem Login in der App sieht &amp; darf.</div>
                                     <div class="d-flex flex-wrap gap-2">
                                         {% for g in auth_groups %}
                                         <label class="form-check form-check-inline small m-0">

@@ -50,7 +50,7 @@
     </li>
     <li class="nav-item">
         <a class="nav-link {% if active_tab == 'roles' %}active{% endif %}" href="?tab=roles">
-            <i class="bi bi-person-badge me-1"></i> 5. Rollen
+            <i class="bi bi-person-badge me-1"></i> 5. Ämter / Tätigkeiten
         </a>
     </li>
 </ul>
@@ -348,8 +348,16 @@ document.addEventListener('click', function (e) {
 
 {% elif active_tab == 'roles' %}
 <div class="card shadow-sm">
-    <div class="card-header"><i class="bi bi-person-badge me-1"></i> Rollen (Mitarbeiter, Gast, Personalverantwortlicher ...)</div>
+    <div class="card-header"><i class="bi bi-person-badge me-1"></i> Ämter / Tätigkeiten (Vorstand, Kursleiter, Kassenwart ...)</div>
     <div class="card-body">
+        <div class="alert alert-light border small mb-3">
+            <strong>Abgrenzung der 3 Felder bei Personen:</strong>
+            <ul class="mb-0 mt-1 ps-3">
+                <li><strong>Personengruppe</strong> (Tab 1, Zweck „Person“): Haupt-Zuordnung (z. B. Mitglied, Externer) für Listen-Filter &amp; Webseite.</li>
+                <li><strong>Ämter / Tätigkeiten</strong> (dieser Tab): Fachliche Aufgaben im Verein (z. B. Vorstand, Kursleiter — steuert <em>keine</em> App-Rechte).</li>
+                <li><strong>App-Zugriffsrechte (Login-Rollen)</strong> (in der Personen-Maske): Steuert, was die Person nach dem Login in der App sieht &amp; darf.</li>
+            </ul>
+        </div>
         {% if can_write %}
         <form method="post" class="row g-2 mb-3 align-items-end">
             {% csrf_token %}
