@@ -114,17 +114,17 @@
                     </td>
                     <td>
                         {% if p.category %}
-                        <span class="badge" style="background: var(--theme-state-{{ p.category.color_state }}, var(--app-primary));">{{ p.category.name }}</span>
+                        <span class="badge" style="{{ p.category.badge_style }}">{{ p.category.name }}</span>
                         {% else %}—{% endif %}
                     </td>
                     <td>
                         {% for r in p.roles.all %}
-                        <span class="badge bg-secondary me-1">{{ r.name }}</span>
+                        <span class="badge me-1" style="{{ r.badge_style }}">{{ r.name }}</span>
                         {% empty %}—{% endfor %}
                     </td>
                     <td>
                         {% if p.status %}
-                        <span class="badge" style="background: var(--theme-state-{{ p.status.color_state }}, var(--app-primary));">{{ p.status.name }}</span>
+                        <span class="badge" style="{{ p.status.badge_style }}">{{ p.status.name }}</span>
                         {% else %}—{% endif %}
                     </td>
                     <td>{{ p.responsible_person.full_name|default:"—" }}</td>
@@ -401,9 +401,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
-                        <select name="role_ids" class="form-select" multiple>
-                            {% for r in roles %}<option value="{{ r.id }}" {% if r in p.roles.all %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
-                        </select>
+                        {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=p.roles.all %}
                         <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
                     </div>
                     {% if can_manage_logins %}
@@ -591,9 +589,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small">Rollen <span class="text-muted">(nur fachlich)</span></label>
-                        <select name="role_ids" class="form-select" multiple>
-                            {% for r in roles %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
-                        </select>
+                        {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=None %}
                         <div class="form-text small">Fachliche Rolle (ohne App-Zugriffsrechte).</div>
                     </div>
                     {% if can_manage_logins %}

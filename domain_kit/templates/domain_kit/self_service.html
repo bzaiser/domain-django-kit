@@ -26,7 +26,7 @@
                         <div class="fw-bold fs-5">{{ person.full_name }}</div>
                         <div class="small text-muted">
                             Benutzer: <code>{{ request.user.username }}</code>
-                            {% if person.status %} · Status: <span class="badge text-bg-secondary">{{ person.status.name }}</span>{% endif %}
+                            {% if person.status %} · Status: <span class="badge" style="{{ person.status.badge_style }}">{{ person.status.name }}</span>{% endif %}
                         </div>
                         {% if person.roles.all %}
                         <div class="mt-2 d-flex flex-wrap gap-1">
