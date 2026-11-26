@@ -31,6 +31,9 @@ DEFAULT_EXCLUDED_APPS = frozenset({
     "ops_kit",
     "domain_kit",
     "cal_kit",
+    "finance_kit",
+    "list_kit",
+    "site_kit",
     "notify_kit",
     "auth_kit",
     "grid_kit",
@@ -527,8 +530,10 @@ def _search_autodiscover(request, q: str, handled_models: set[str]):
             query_q |= Q(**{f"{f.name}__icontains": q})
 
         try:
-            qs = model.objects.all()
             user_fk = _get_user_fk_field_name(model)
+            if not user_fk and not (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)):
+                continue
+            qs = model.objects.all()
             if user_fk:
                 qs = qs.filter(**{user_fk: request.user})
             rows = list(qs.filter(query_q)[:25])

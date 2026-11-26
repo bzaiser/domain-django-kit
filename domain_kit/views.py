@@ -206,7 +206,7 @@ def persons_page_view(request):
                 User = get_user_model()
                 if "user_id" in request.POST:
                     target_u = _fk_or_none(User, request.POST.get("user_id"))
-                    if target_u is None or request.user.is_superuser or not target_u.is_superuser:
+                    if target_u is None or request.user.is_superuser or (not target_u.is_superuser and not target_u.is_staff):
                         person.user = target_u
                         person.save(update_fields=["user"])
                 if request.POST.get("create_login") == "1" and person.user is None:
@@ -238,17 +238,21 @@ def persons_page_view(request):
                     created_login_info = f" · Login „{uname}“ (Start-Passwort: {raw_pw})"
                 elif person.user is not None:
                     u = person.user
+                    can_mutate_target = request.user.is_superuser or (not u.is_superuser and (request.user.is_staff or not u.is_staff))
                     new_pw = (request.POST.get("new_password") or "").strip()
-                    if new_pw:
+                    if new_pw and can_mutate_target and (request.user.is_superuser or not u.is_superuser):
                         u.set_password(new_pw)
                         u.save(update_fields=["password"])
-                    if "user_active_present" in request.POST and u.id != request.user.id and not u.is_superuser:
+                    if "user_active_present" in request.POST and u.id != request.user.id and can_mutate_target and not u.is_superuser:
                         u.is_active = bool(request.POST.get("user_is_active"))
                         u.save(update_fields=["is_active"])
 
                 if person.user is not None and "auth_group_ids_present" in request.POST and not person.user.is_superuser:
                     gids = [int(g) for g in request.POST.getlist("auth_group_ids") if str(g).isdigit()]
-                    person.user.groups.set(Group.objects.filter(pk__in=gids))
+                    qs_groups = Group.objects.filter(pk__in=gids)
+                    if not (request.user.is_superuser or request.user.is_staff):
+                        qs_groups = qs_groups.exclude(name__in=("Leitung / Vorstand", "Vorstand", "Buchhaltung / Kassierer"))
+                    person.user.groups.set(qs_groups)
 
             messages.success(request, f"Person gespeichert.{created_login_info}")
             return redirect(f"{request.path}?tab=persons")
@@ -302,7 +306,7 @@ def persons_page_view(request):
                 asset_type="contract",
                 title=title,
                 person=person,
-                quantity=_parse_decimal(request.POST.get("quantity")),
+                quantity=_to_dec(request.POST.get("quantity")),
                 billing_interval=(request.POST.get("billing_interval") or "").strip()[:32],
                 start_date=request.POST.get("start_date") or None,
                 end_date=request.POST.get("end_date") or None,
@@ -616,36 +620,58 @@ def documents_page_view(request):
     )
 
 
-@login_required
+def _can_access_document(user, doc: Document) -> bool:
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    if get_module_access(user, "documents") == "none":
+        return False
+    topic = getattr(doc, "topic", "") or ""
+    if topic == "contract":
+        return get_module_access(user, "contracts") != "none"
+    if topic in ("account", "finance"):
+        return get_module_access(user, "accounts") != "none"
+    return True
+
+
 def person_photo_view(request, pk):
-    if get_module_access(request.user, "persons") == "none":
-        return HttpResponseForbidden("Kein Zugriff auf Personen.")
     person = get_object_or_404(Person, pk=pk)
+    if not person.is_public:
+        if not request.user.is_authenticated:
+            return HttpResponseForbidden("Anmeldung erforderlich.")
+        if get_module_access(request.user, "persons") == "none":
+            return HttpResponseForbidden("Kein Zugriff auf Personen.")
     if not person.photo:
         raise Http404("Kein Bild hinterlegt.")
     ctype, _ = mimetypes.guess_type(person.photo.name)
-    return FileResponse(person.photo.open("rb"), as_attachment=False, content_type=ctype or "application/octet-stream")
+    is_safe_img = (ctype or "").lower() in ("image/png", "image/jpeg", "image/gif", "image/webp")
+    resp = FileResponse(person.photo.open("rb"), as_attachment=not is_safe_img, content_type=ctype or "application/octet-stream")
+    resp["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 @login_required
 @xframe_options_sameorigin
 def view_document_view(request, pk):
-    if get_module_access(request.user, "documents") == "none":
-        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     doc = get_object_or_404(Document, pk=pk)
+    if not _can_access_document(request.user, doc):
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     if not doc.file:
         raise Http404("Keine Datei hinterlegt.")
     fname = doc.file_name or doc.file.name.rsplit("/", 1)[-1]
     ctype, _ = mimetypes.guess_type(fname)
-    return FileResponse(doc.file.open("rb"), as_attachment=False, filename=fname, content_type=ctype or "application/octet-stream")
+    ctype_l = (ctype or "").lower()
+    is_safe_inline = ctype_l in ("application/pdf", "text/plain", "image/png", "image/jpeg", "image/gif", "image/webp")
+    resp = FileResponse(doc.file.open("rb"), as_attachment=not is_safe_inline, filename=fname, content_type=ctype or "application/octet-stream")
+    resp["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 @login_required
 @xframe_options_sameorigin
 def preview_document_view(request, pk):
-    if get_module_access(request.user, "documents") == "none":
-        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     doc = get_object_or_404(Document, pk=pk)
+    if not _can_access_document(request.user, doc):
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     fname = doc.file_name or (doc.file.name.rsplit("/", 1)[-1] if doc.file else doc.title)
     fobj = doc.file.open("rb") if doc.file else None
     try:
@@ -658,12 +684,14 @@ def preview_document_view(request, pk):
 
 @login_required
 def download_document_view(request, pk):
-    if get_module_access(request.user, "documents") == "none":
-        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     doc = get_object_or_404(Document, pk=pk)
+    if not _can_access_document(request.user, doc):
+        return HttpResponseForbidden("Kein Zugriff auf Dokumente.")
     if not doc.file:
         raise Http404("Keine Datei hinterlegt.")
-    return FileResponse(doc.file.open("rb"), as_attachment=True, filename=doc.file_name or doc.file.name.rsplit("/", 1)[-1])
+    resp = FileResponse(doc.file.open("rb"), as_attachment=True, filename=doc.file_name or doc.file.name.rsplit("/", 1)[-1])
+    resp["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 @login_required
@@ -675,7 +703,6 @@ def global_search_view(request):
         messages.warning(request, "Die Globale Suche ist in den Einstellungen deaktiviert.")
         return redirect("domain_kit:settings" if (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)) else "/")
 
-    # Only deny if an explicit group rule blocks global_search (default: allow logged-in users with per-user data isolation)
     if not (getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False)):
         group_ids = list(request.user.groups.values_list("id", flat=True))
         if group_ids:
@@ -919,16 +946,8 @@ def self_service_profile_view(request):
         .prefetch_related("roles", "addresses")
         .first()
     )
-    if person is None:
-        cand = None
-        if request.user.email:
-            cand = Person.objects.filter(user__isnull=True, email__iexact=request.user.email).first()
-        if cand is None and request.user.first_name and request.user.last_name:
-            cand = Person.objects.filter(
-                user__isnull=True,
-                first_name__iexact=request.user.first_name,
-                last_name__iexact=request.user.last_name,
-            ).first()
+    if person is None and request.method == "POST" and request.user.email:
+        cand = Person.objects.filter(user__isnull=True, email__iexact=request.user.email).first()
         if cand is not None:
             cand.user = request.user
             cand.save(update_fields=["user"])
