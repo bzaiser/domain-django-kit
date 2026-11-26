@@ -402,6 +402,17 @@
                         </select>
                     </div>
                     <div class="col-md-4"><label class="form-label small">Bank / Anbieter</label><input type="text" name="institution" class="form-control" value="{{ a.institution }}"></div>
+                    <div class="col-md-4"><label class="form-label small">Intervall (z. B. monatlich)</label><input type="text" name="billing_interval" class="form-control" value="{{ a.billing_interval }}"></div>
+                    <div class="col-md-4"><label class="form-label small">Seriennummer</label><input type="text" name="serial_number" class="form-control" value="{{ a.serial_number }}"></div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Standort / Adresse</label>
+                        <select name="address_id" class="form-select">
+                            <option value="">—</option>
+                            {% for addr in addresses %}<option value="{{ addr.id }}" {% if a.address_id == addr.id %}selected{% endif %}>{{ addr.label|default:addr.street }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label small">Startdatum</label><input type="date" name="start_date" class="form-control" value="{{ a.start_date|date:'Y-m-d' }}"></div>
+                    <div class="col-md-4"><label class="form-label small">Enddatum</label><input type="date" name="end_date" class="form-control" value="{{ a.end_date|date:'Y-m-d' }}"></div>
                     <div class="col-12"><label class="form-label small">Notizen</label><textarea name="notes" class="form-control" rows="2">{{ a.notes }}</textarea></div>
                 </div>
             </div>

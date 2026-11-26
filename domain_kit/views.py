@@ -425,14 +425,19 @@ def assets_page_view(request):
             item.category = _fk_or_none(Category, request.POST.get("category_id"))
             item.status = _fk_or_none(Status, request.POST.get("status_id"))
             item.person = _fk_or_none(Person, request.POST.get("person_id"))
-            item.address = _fk_or_none(Address, request.POST.get("address_id"))
+            if "address_id" in request.POST:
+                item.address = _fk_or_none(Address, request.POST.get("address_id"))
             item.quantity = _to_dec(request.POST.get("quantity"))
             item.unit = _fk_or_none(Unit, request.POST.get("unit_id"))
-            item.billing_interval = (request.POST.get("billing_interval") or "").strip()[:32]
-            item.serial_number = (request.POST.get("serial_number") or "").strip()[:80]
+            if "billing_interval" in request.POST:
+                item.billing_interval = (request.POST.get("billing_interval") or "").strip()[:32]
+            if "serial_number" in request.POST:
+                item.serial_number = (request.POST.get("serial_number") or "").strip()[:80]
             item.institution = (request.POST.get("institution") or "").strip()[:120]
-            item.start_date = request.POST.get("start_date") or None
-            item.end_date = request.POST.get("end_date") or None
+            if "start_date" in request.POST:
+                item.start_date = request.POST.get("start_date") or None
+            if "end_date" in request.POST:
+                item.end_date = request.POST.get("end_date") or None
             item.notes = (request.POST.get("notes") or "").strip()
             item.save()
             messages.success(request, "Asset gespeichert.")
