@@ -196,11 +196,9 @@ def persons_page_view(request):
             if role_ids or "role_ids_present" in request.POST:
                 person.roles.set(Role.objects.filter(pk__in=role_ids))
 
-            can_logins = (
-                request.user.is_superuser
-                or request.user.is_staff
-                or request.user.groups.filter(name__in=("Leitung / Vorstand", "Vorstand", "Personalverantwortlicher")).exists()
-            )
+            from design_studio.permissions import get_role_group_names, user_has_role
+
+            can_logins = user_has_role(request.user, "hr")
             created_login_info = ""
             if can_logins:
                 User = get_user_model()
@@ -251,7 +249,8 @@ def persons_page_view(request):
                     gids = [int(g) for g in request.POST.getlist("auth_group_ids") if str(g).isdigit()]
                     qs_groups = Group.objects.filter(pk__in=gids)
                     if not (request.user.is_superuser or request.user.is_staff):
-                        qs_groups = qs_groups.exclude(name__in=("Leitung / Vorstand", "Vorstand", "Buchhaltung / Kassierer"))
+                        restricted = set(get_role_group_names("management")) | set(get_role_group_names("finance"))
+                        qs_groups = qs_groups.exclude(name__in=restricted)
                     person.user.groups.set(qs_groups)
 
             messages.success(request, f"Person gespeichert.{created_login_info}")

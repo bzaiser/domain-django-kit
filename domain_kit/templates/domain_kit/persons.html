@@ -89,7 +89,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Personengruppe <i class="bi bi-info-circle text-muted ms-1" title="Wer ist diese Person? (z. B. Mitglied, Externer — für Listen-Filter &amp; Webseite)"></i></th>
-                    <th>Ämter / Tätigkeiten <i class="bi bi-info-circle text-muted ms-1" title="Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte)"></i></th>
+                    <th>Rollen / Tätigkeiten <i class="bi bi-info-circle text-muted ms-1" title="Aufgabe / Funktion in der Organisation (z. B. Leitung, Ansprechpartner — steuert keine App-Rechte)"></i></th>
                     <th>Status</th>
                     <th>Verantwortlich</th>
                     <th>Kontakt</th>
@@ -408,7 +408,7 @@
                     <div class="col-md-6">
                         <label class="form-label small">Ämter / Tätigkeiten <span class="text-muted">(nur fachlich)</span></label>
                         {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=p.roles.all %}
-                        <div class="form-text small">Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte).</div>
+                        <div class="form-text small">Aufgabe / Funktion in der Organisation (z. B. Leitung, Ansprechpartner — steuert keine App-Rechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
@@ -598,7 +598,7 @@
                     <div class="col-md-6">
                         <label class="form-label small">Ämter / Tätigkeiten <span class="text-muted">(nur fachlich)</span></label>
                         {% include "domain_kit/includes/multi_select_roles.html" with selected_roles=None %}
-                        <div class="form-text small">Aufgabe im Verein (z. B. Vorstand, Kursleiter — steuert keine App-Rechte).</div>
+                        <div class="form-text small">Aufgabe / Funktion in der Organisation (z. B. Leitung, Ansprechpartner — steuert keine App-Rechte).</div>
                     </div>
                     {% if can_manage_logins %}
                     <div class="col-12">
