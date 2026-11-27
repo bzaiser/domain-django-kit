@@ -904,9 +904,21 @@ def settings_page_view(request):
         })
 
     purpose_filter = request.GET.get("purpose", "")
-    cats = Category.objects.all()
+    cat_q = (request.GET.get("q") or "").strip()
+    cats_qs = Category.objects.all()
     if purpose_filter:
-        cats = cats.filter(purpose=purpose_filter)
+        cats_qs = cats_qs.filter(purpose=purpose_filter)
+    if cat_q:
+        cats_qs = cats_qs.filter(Q(name__icontains=cat_q) | Q(code__icontains=cat_q) | Q(value__icontains=cat_q))
+    state_labels = {}
+    try:
+        from design_studio.engine import STATES as DS_STATES
+        state_labels = {int(st["index"]): str(st["n"]) for st in DS_STATES}
+    except Exception:
+        pass
+    cats = list(cats_qs)
+    for c in cats:
+        c.color_label = state_labels.get(c.color_state, f"Farbe {c.color_state}")
     scope_filter = request.GET.get("scope", "")
     status_scope_choices = [
         ("global", "Global (überall verfügbar)"),
@@ -922,6 +934,11 @@ def settings_page_view(request):
     sts = list(Status.objects.filter(scope=scope_filter) if scope_filter else Status.objects.all())
     for s in sts:
         s.scope_label = scope_label_map.get(s.scope, s.scope)
+        s.color_label = state_labels.get(s.color_state, f"Farbe {s.color_state}")
+    roles_list = list(Role.objects.select_related("category"))
+    for rl in roles_list:
+        rl.color_label = state_labels.get(rl.color_state, f"Farbe {rl.color_state}")
+    state_labels_items = [(str(i), state_labels.get(i, f"Farbe {i}")) for i in range(1, 9)]
 
     return render(
         request,
@@ -935,14 +952,16 @@ def settings_page_view(request):
             "access_choices": ACCESS_CHOICES,
             "purpose_choices": PURPOSE_CHOICES,
             "purpose_filter": purpose_filter,
+            "cat_q": cat_q,
             "scope_filter": scope_filter,
             "categories": cats,
             "units": Unit.objects.all(),
             "unit_dimension_choices": Unit.DIMENSION_CHOICES,
             "statuses": sts,
             "status_scope_choices": status_scope_choices,
-            "roles": Role.objects.select_related("category"),
+            "roles": roles_list,
             "role_categories": Category.for_purpose("person", "general"),
+            "state_labels_items": state_labels_items,
         },
     )
 

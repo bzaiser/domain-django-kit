@@ -1,6 +1,15 @@
 <div class="d-flex flex-wrap align-items-center gap-2 ds-color-picker-wrap">
     <input type="hidden" name="color_state" class="ds-color-state-input" value="{{ selected_state|default:1 }}">
     <div class="d-flex flex-wrap align-items-center gap-1">
+        {% if state_labels_items %}
+        {% for i, lbl in state_labels_items %}
+        <button type="button"
+                class="ds-color-swatch-btn {% if not selected_custom and selected_state|default:1|stringformat:'s' == i %}active{% endif %}"
+                data-state="{{ i }}"
+                style="background: var(--theme-state-{{ i }}, var(--app-primary, #0d6efd));"
+                title="{{ lbl }}"></button>
+        {% endfor %}
+        {% else %}
         {% for i in "12345678" %}
         <button type="button"
                 class="ds-color-swatch-btn {% if not selected_custom and selected_state|default:1|stringformat:'s' == i %}active{% endif %}"
@@ -8,6 +17,7 @@
                 style="background: var(--theme-state-{{ i }}, var(--app-primary, #0d6efd));"
                 title="Farbe {{ i }}"></button>
         {% endfor %}
+        {% endif %}
     </div>
     <div class="input-group input-group-sm" style="width: auto;" title="Optional: Eigene Farbe statt Design-Studio-Farbe wählen">
         <span class="input-group-text">

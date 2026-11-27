@@ -196,13 +196,27 @@ document.addEventListener('click', function (e) {
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span><i class="bi bi-tags me-1"></i> Kategorien (nach Bereich / Zweck gefiltert)</span>
         <div class="d-flex flex-wrap gap-1">
-            <a href="?tab=categories" class="btn btn-sm {% if not purpose_filter %}btn-primary{% else %}btn-light{% endif %} rounded-pill">Alle</a>
+            <a href="?tab=categories{% if cat_q %}&q={{ cat_q|urlencode }}{% endif %}" class="btn btn-sm {% if not purpose_filter %}btn-primary{% else %}btn-light{% endif %} rounded-pill">Alle</a>
             {% for p_key, p_lbl in purpose_choices %}
-            <a href="?tab=categories&purpose={{ p_key }}" class="btn btn-sm {% if purpose_filter == p_key %}btn-primary{% else %}btn-light{% endif %} rounded-pill">{{ p_lbl }}</a>
+            <a href="?tab=categories&purpose={{ p_key }}{% if cat_q %}&q={{ cat_q|urlencode }}{% endif %}" class="btn btn-sm {% if purpose_filter == p_key %}btn-primary{% else %}btn-light{% endif %} rounded-pill">{{ p_lbl }}</a>
             {% endfor %}
         </div>
     </div>
     <div class="card-body">
+        <form method="get" class="row g-2 align-items-center mb-2">
+            <input type="hidden" name="tab" value="categories">
+            {% if purpose_filter %}<input type="hidden" name="purpose" value="{{ purpose_filter }}">{% endif %}
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="search" name="q" value="{{ cat_q }}" class="form-control" placeholder="Kategorien suchen (Name, Code, Value) …">
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Suchen</button>
+                {% if cat_q %}<a href="?tab=categories{% if purpose_filter %}&purpose={{ purpose_filter }}{% endif %}" class="btn btn-sm btn-link text-muted">Zurücksetzen</a>{% endif %}
+            </div>
+        </form>
         <div class="small text-muted mb-2">Hinweis: Kategorien mit Bereich <strong>Allgemein</strong> stehen in allen Modulen zur Auswahl; spezifische Bereiche (z. B. <em>Dokumente</em>, <em>Personen</em>, <em>Verträge</em>) erscheinen gezielt dort.</div>
         {% if can_write %}
         <form method="post" class="row g-2 mb-3 align-items-end">
@@ -233,7 +247,7 @@ document.addEventListener('click', function (e) {
                         <td><span class="badge bg-secondary">{{ c.get_purpose_display }}</span></td>
                         <td class="fw-semibold">{{ c.name }}</td>
                         <td>{{ c.code }} {% if c.value %}({{ c.value }}){% endif %}</td>
-                        <td><span class="badge" style="{{ c.badge_style }}">{% if c.custom_color %}{{ c.custom_color }}{% else %}Farbe {{ c.color_state }}{% endif %}</span></td>
+                        <td><span class="badge" style="{{ c.badge_style }}">{% if c.custom_color %}{{ c.custom_color }}{% else %}{{ c.color_label|default:c.color_state }}{% endif %}</span></td>
                         <td class="text-end">
                             <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#catViewModal-{{ c.id }}"><i class="bi bi-eye"></i></button>
                             {% if can_write %}
@@ -403,7 +417,7 @@ document.addEventListener('click', function (e) {
         <div class="modal-body small">
             <p><strong>Zweck:</strong> {{ c.get_purpose_display }} | <strong>Position:</strong> {{ c.position }}</p>
             <p><strong>Code / Value:</strong> {{ c.code|default:"—" }} / {{ c.value|default:"—" }}</p>
-            <p><strong>Farbe:</strong> <span class="badge" style="{{ c.badge_style }}">{% if c.custom_color %}{{ c.custom_color }}{% else %}Farbe {{ c.color_state }}{% endif %}</span></p>
+            <p><strong>Farbe:</strong> <span class="badge" style="{{ c.badge_style }}">{% if c.custom_color %}{{ c.custom_color }}{% else %}{{ c.color_label|default:c.color_state }}{% endif %}</span></p>
         </div>
     </div></div>
 </div>

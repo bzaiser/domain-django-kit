@@ -731,6 +731,18 @@ class DomainKitTests(TestCase):
         target_p.refresh_from_db()
         self.assertIsNone(target_p.user)
 
+    def test_categories_search_and_design_studio_state_labels(self):
+        Category.objects.create(name="Werkzeug", code="WZ", purpose="inventory", color_state=1)
+        Category.objects.create(name="Mitgliedsbeitrag", code="MB", purpose="account", color_state=7)
+        self.client.force_login(self.admin)
+        r = self.client.get("/domain/settings/?tab=categories&q=Werk")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Werkzeug")
+        self.assertNotContains(r, "Mitgliedsbeitrag")
+        self.assertContains(r, "OK / Ampel Grün (Success)")
+        r_all = self.client.get("/domain/settings/?tab=categories")
+        self.assertContains(r_all, "Neutral / Inaktiv (Secondary)")
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner
