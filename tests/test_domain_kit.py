@@ -743,6 +743,36 @@ class DomainKitTests(TestCase):
         r_all = self.client.get("/domain/settings/?tab=categories")
         self.assertContains(r_all, "Neutral / Inaktiv (Secondary)")
 
+    def test_schriftfuehrer_sees_general_docs_but_not_person_dsgvo_docs(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Group
+        from domain_kit.models import DomainGroupPermission
+
+        User = get_user_model()
+
+        g_schrift, _ = Group.objects.get_or_create(name="Schriftführer")
+        DomainGroupPermission.objects.update_or_create(group=g_schrift, module_key="documents", defaults={"access_level": "read"})
+        DomainGroupPermission.objects.update_or_create(group=g_schrift, module_key="persons", defaults={"access_level": "read"})
+
+        u_schrift = User.objects.create_user(username="schrift_dom", password="pw")
+        u_schrift.groups.add(g_schrift)
+
+        p = Person.objects.create(first_name="Clara", last_name="Dozent")
+        doc_general = Document.objects.create(title="Vereinssatzung", topic="general")
+        doc_person = Document.objects.create(title="Dozentenvertrag Clara", topic="person", person=p)
+
+        self.client.force_login(u_schrift)
+        r_docs = self.client.get("/domain/documents/")
+        self.assertEqual(r_docs.status_code, 200)
+        self.assertContains(r_docs, "Vereinssatzung")
+        self.assertNotContains(r_docs, "Dozentenvertrag Clara")
+
+        r_pers = self.client.get("/domain/persons/")
+        self.assertEqual(r_pers.status_code, 200)
+        self.assertNotContains(r_pers, "Dozentenvertrag Clara")
+        self.assertEqual(self.client.get(f"/domain/documents/{doc_person.id}/preview/").status_code, 403)
+        self.assertEqual(self.client.get(f"/domain/documents/{doc_general.id}/preview/").status_code, 200)
+
 
 if __name__ == "__main__":
     from django.test.runner import DiscoverRunner

@@ -347,9 +347,13 @@ def persons_page_view(request):
     if exp_resp is not None:
         return exp_resp
     addresses = Address.objects.select_related("person", "category")
-    person_docs = Document.objects.filter(Q(topic="person") | Q(person__isnull=False)).select_related(
-        "category", "status", "person", "unit"
-    )
+    can_sensitive_docs = _can_access_sensitive_person_docs(request.user)
+    if can_sensitive_docs:
+        person_docs = Document.objects.filter(Q(topic="person") | Q(person__isnull=False)).select_related(
+            "category", "status", "person", "unit"
+        )
+    else:
+        person_docs = Document.objects.none()
 
     return render(
         request,
@@ -590,6 +594,8 @@ def documents_page_view(request):
             return redirect("domain_kit:documents")
 
     docs = Document.objects.select_related("category", "status", "person", "asset", "unit")
+    if not _can_access_sensitive_person_docs(request.user):
+        docs = docs.exclude(Q(topic="person") | Q(person__isnull=False))
     if topic_filter in ("person", "asset", "contract", "inventory", "account", "finance", "general"):
         docs = docs.filter(topic=topic_filter)
     category_filter = (request.GET.get("category") or "").strip()
@@ -628,12 +634,24 @@ def documents_page_view(request):
     )
 
 
+def _can_access_sensitive_person_docs(user) -> bool:
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    try:
+        from design_studio.permissions import user_has_role
+        return user_has_role(user, "management") or user_has_role(user, "hr")
+    except Exception:
+        return False
+
+
 def _can_access_document(user, doc: Document) -> bool:
     if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
         return True
     if get_module_access(user, "documents") == "none":
         return False
     topic = getattr(doc, "topic", "") or ""
+    if (topic == "person" or getattr(doc, "person_id", None) is not None) and not _can_access_sensitive_person_docs(user):
+        return False
     if topic == "contract":
         return get_module_access(user, "contracts") != "none"
     if topic in ("account", "finance"):
